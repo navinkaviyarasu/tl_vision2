@@ -18,7 +18,7 @@ import ecal.core.core as ecal_core
 # Import the Cap'n Proto schema and message
 # current_path = str(pathlib.Path(__file__).parent.resolve())
 # capnp_schema_path = current_path + '/../src/capnp'
-capnp_schema_path = '/home/nk/Workspace/vio_ws/src/vision/src/capnp'
+capnp_schema_path = '/home/fawkes/Workspace/vilota/ecal-common/src/capnp'
 capnp.add_import_hook([capnp_schema_path])
 
 import odometry3d_capnp as eCALOdometry3d
@@ -76,7 +76,7 @@ class RosOdometryPublisher(rclpy.node.Node):
         self.mocap_odom_pub = self.create_publisher(VehicleOdometry,'fmu/in/vehicle_mocap_odometry', 10)
         self.viostate_pub = self.create_publisher(VioState, '/vision/vio_state', 10)
 
-        mount_orientation_normalization = mount_orientation_normalization(yaw, pitch, roll)
+        # mount_orientation_normalized = mount_orientation_normalization(yaw, pitch, roll)
 
         # TF broadcaster
         self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
@@ -84,7 +84,7 @@ class RosOdometryPublisher(rclpy.node.Node):
     def mount_orientation_normalization(yaw, pitch, roll):
        #Convert from drone body frame FRD to vision module frame NWU and convert to radians
        yaw_rad = np.radians(-yaw)
-       pitch_rad = np.radians(-pitch)
+       pitch_rad = np.radians(pitch)
        roll_rad = np.radians(roll)
 
        r_yaw = np.array([np.cos(yaw_rad), -np.sin(yaw_rad), o],
@@ -99,58 +99,84 @@ class RosOdometryPublisher(rclpy.node.Node):
                          [0, np.cos(roll_rad), -np.sin(roll_rad)],
                          [0, np.sin(roll_rad), np.cos(roll_rad)])
        
-       return r_total = r_yaw.dot(r_pitch).dot(r_roll)
+       r_total = r_yaw.dot(r_pitch).dot(r_roll)
+
+       return r_total
+    
+    def nwu_to_ned_transform():
+       
+       
+       rot_mat = np.array([1,0,0],
+                      [0,-1,0],
+                      [0,0,-1])
+       
+       ned_frame = rot_mat.odom_nwu
 
        
     def callback(self, topic_name, msg, time):
         with eCALOdometry3d.Odometry3d.from_bytes(msg) as odometryMsg:
 
-            vio_msg = VehicleOdometry()
-            if self.vision_module_type == 1: # For VK180Pro conversion to FRD world-fixed frame with arbitrary heading reference
 
-                vio_msg.timestamp = int(self.get_clock().now().nanoseconds/1000)
-                # vio_msg.timestamp_sample = 
-                vio_msg.pose_frame = 2
-                vio_msg.position[0] = -(odometryMsg.pose.position.x)
-                vio_msg.position[1] = odometryMsg.pose.position.y
-                vio_msg.position[2] = -(odometryMsg.pose.position.z)
-                vio_msg.q[0] = odometryMsg.pose.orientation.w
-                vio_msg.q[1] = -(odometryMsg.pose.orientation.x)
-                vio_msg.q[2] = odometryMsg.pose.orientation.y
-                vio_msg.q[3] = -(odometryMsg.pose.orientation.z)
-                vio_msg.velocity_frame = 2
-                vio_msg.velocity[0] = np.NaN
-                vio_msg.velocity[1] = np.NaN
-                vio_msg.velocity[2] = np.NaN
-                vio_msg.angular_velocity[0] = np.NaN
-                vio_msg.angular_velocity[0] = np.NaN
-                vio_msg.angular_velocity[0] = np.NaN
-                # vio_msg.position_variance = np.NaN
-                # vio_msg.orientation_variance = np.NaN
-                # vio_msg.velocity_variance = np.NaN
 
-            elif self.vision_module_type == 2: # For VK180 conversion to FRD world-fixed frame with arbitrary heading reference
+            print(f"Position: {odometryMsg.pose.position}")
+            print(f"Orientation: {odometryMsg.pose.orientation}")
+            print(f"Velocity: {odometryMsg.twist.linear}")
 
-                vio_msg.timestamp = int(self.get_clock().now().nanoseconds/1000)
-                # vio_msg.timestamp_sample = 
-                vio_msg.pose_frame = 0
-                vio_msg.position[0] = odometryMsg.pose.position.x
-                vio_msg.position[1] = -(odometryMsg.pose.position.y)
-                vio_msg.position[2] = -(odometryMsg.pose.position.z)
-                vio_msg.q[0] = odometryMsg.pose.orientation.w
-                vio_msg.q[1] = odometryMsg.pose.orientation.x
-                vio_msg.q[2] = -(odometryMsg.pose.orientation.y)
-                vio_msg.q[3] = -(odometryMsg.pose.orientation.z)
-                vio_msg.velocity_frame = 2
-                vio_msg.velocity[0] = np.NaN
-                vio_msg.velocity[1] = np.NaN
-                vio_msg.velocity[2] = np.NaN
-                vio_msg.angular_velocity[0] = np.NaN
-                vio_msg.angular_velocity[1] = np.NaN
-                vio_msg.angular_velocity[2] = np.NaN
-                # vio_msg.position_variance = np.NaN
-                # vio_msg.orientation_variance = np.NaN
-                # vio_msg.velocity_variance = np.NaN
+            position = odometryMsg.pose.position
+            orientation = odometryMsg.pose.orientation
+            l_velocity = odometryMsg.twist.linear
+            position_nwu = np.array([position.x, position.y, position.z])
+            velocity_nwu = np.array([orientation.w, orientation.x, orientation.y, orientation.z])
+            l_velocity_nwu = np.array([l_velocity.x, l_velocity.y, l_velocity.z])
+
+
+
+            # vio_msg = VehicleOdometry()
+            # if self.vision_module_type == 1: # For VK180Pro conversion to FRD world-fixed frame with arbitrary heading reference
+
+            #     vio_msg.timestamp = int(self.get_clock().now().nanoseconds/1000)
+            #     # vio_msg.timestamp_sample = 
+            #     vio_msg.pose_frame = 2
+            #     vio_msg.position[0] = -(odometryMsg.pose.position.x)
+            #     vio_msg.position[1] = odometryMsg.pose.position.y
+            #     vio_msg.position[2] = -(odometryMsg.pose.position.z)
+            #     vio_msg.q[0] = odometryMsg.pose.orientation.w
+            #     vio_msg.q[1] = -(odometryMsg.pose.orientation.x)
+            #     vio_msg.q[2] = odometryMsg.pose.orientation.y
+            #     vio_msg.q[3] = -(odometryMsg.pose.orientation.z)
+            #     vio_msg.velocity_frame = 2
+            #     vio_msg.velocity[0] = np.NaN
+            #     vio_msg.velocity[1] = np.NaN
+            #     vio_msg.velocity[2] = np.NaN
+            #     vio_msg.angular_velocity[0] = np.NaN
+            #     vio_msg.angular_velocity[0] = np.NaN
+            #     vio_msg.angular_velocity[0] = np.NaN
+            #     # vio_msg.position_variance = np.NaN
+            #     # vio_msg.orientation_variance = np.NaN
+            #     # vio_msg.velocity_variance = np.NaN
+
+            # elif self.vision_module_type == 2: # For VK180 conversion to FRD world-fixed frame with arbitrary heading reference
+
+            #     vio_msg.timestamp = int(self.get_clock().now().nanoseconds/1000)
+            #     # vio_msg.timestamp_sample = 
+            #     vio_msg.pose_frame = 0
+            #     vio_msg.position[0] = odometryMsg.pose.position.x
+            #     vio_msg.position[1] = -(odometryMsg.pose.position.y)
+            #     vio_msg.position[2] = -(odometryMsg.pose.position.z)
+            #     vio_msg.q[0] = odometryMsg.pose.orientation.w
+            #     vio_msg.q[1] = odometryMsg.pose.orientation.x
+            #     vio_msg.q[2] = -(odometryMsg.pose.orientation.y)
+            #     vio_msg.q[3] = -(odometryMsg.pose.orientation.z)
+            #     vio_msg.velocity_frame = 2
+            #     vio_msg.velocity[0] = np.NaN
+            #     vio_msg.velocity[1] = np.NaN
+            #     vio_msg.velocity[2] = np.NaN
+            #     vio_msg.angular_velocity[0] = np.NaN
+            #     vio_msg.angular_velocity[1] = np.NaN
+            #     vio_msg.angular_velocity[2] = np.NaN
+            #     # vio_msg.position_variance = np.NaN
+            #     # vio_msg.orientation_variance = np.NaN
+            #     # vio_msg.velocity_variance = np.NaN
 
             vio_msg.reset_counter = odometryMsg.resetCounter
             vio_msg.quality = 0
@@ -199,7 +225,32 @@ class RosOdometryPublisher(rclpy.node.Node):
 
             # self.viostate_pub.publish(vio_state)
 
-            self.get_logger().info("VIO Bridge Active")
+            # self.get_logger().info("VIO Bridge Active")
+
+    def viostate_publisher():
+       
+
+    def odomtery_publisher():
+                
+        vio_msg = VehicleOdometry()
+
+        vio_msg.timestamp = int(self.get_clock().now().nanoseconds/1000)
+        # vio_msg.timestamp_sample = 
+
+        vio_msg.pose_frame = 1
+        vio_msg.position[] = ned_odom_position[]
+        vio_msg.q[] = ned_odom_orienatation[] # w, x, y, z order
+
+        vio_msg.velocity_frame = 1
+        vio_msg.velocity[] = ned_odom_l_velocity[]
+        vio_msg.angular_velocity[] = np.NaN #ned_odom_a_velocity[]
+
+        # vio_msg.position_variance = np.NaN
+        # vio_msg.orientation_variance = np.NaN
+        # vio_msg.velocity_variance = np.NaN
+
+        self.vio_odom_pub.publish(vio_msg)
+   
 
 def main():
     global vision_module_type
