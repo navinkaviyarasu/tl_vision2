@@ -1,29 +1,24 @@
 #!/usr/bin/env python3
 
 import sys
-import capnp
 import pathlib
+
+import capnp
 import rclpy
 import tf2_ros
-from geometry_msgs.msg import TransformStamped
-from nav_msgs.msg import Odometry
 import numpy as np
-#from scipy.spatial.transform import Rotation as R
-
-
-from px4_msgs.msg import VehicleOdometry, VioState
-
 import ecal.core.core as ecal_core
 
-# Import the Cap'n Proto schema and message
-# current_path = str(pathlib.Path(__file__).parent.resolve())
-# capnp_schema_path = current_path + '/../src/capnp'
-capnp_schema_path = '/home/nk/Workspace/vio_ws/src/vision/src/capnp'
-capnp.add_import_hook([capnp_schema_path])
-
-import odometry3d_capnp as eCALOdometry3d
-
 from ecal.core.subscriber import MessageSubscriber
+from scipy.spatial.transform import Rotation as R
+
+from geometry_msgs.msg import TransformStamped
+from nav_msgs.msg import Odometry
+from px4_msgs.msg import VehicleOdometry, VioState
+
+current_path = str(pathlib.Path(__file__).parent.resolve())
+capnp.add_import_hook([current_path + '/../capnp'])
+import odometry3d_capnp as eCALOdometry3d
 
 vision_module_type = None
 
@@ -118,6 +113,10 @@ class RosOdometryPublisher(rclpy.node.Node):
                 vio_msg.q[1] = odometryMsg.pose.orientation.x
                 vio_msg.q[2] = -(odometryMsg.pose.orientation.y)
                 vio_msg.q[3] = -(odometryMsg.pose.orientation.z)
+
+                r=R.from_quat(vio_msg.q)
+                ned_euler = r.as_euler('xyz', degrees=True)
+                print("Orientation in NED (before applying rotation):", ned_euler)
                 vio_msg.velocity_frame = 1
                 vio_msg.velocity[0] = odometryMsg.twist.linear.x
                 vio_msg.velocity[1] = -(odometryMsg.twist.linear.y)

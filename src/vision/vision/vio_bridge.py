@@ -1,21 +1,25 @@
 import sys
-import capnp
 import pathlib
+
+import capnp
 import rclpy
 import tf2_ros
+import numpy as np
+import ecal.core.core as ecal_core
+
 from rclpy.node import Node
-from std_msgs.msg import Header
-from nav_msgs.msg import Odometry
+from ecal.core.subscriber import MessageSubscriber
+from scipy.spatial.transform import Rotation as R
+
 from geometry_msgs.msg import TransformStamped
-from px4_msgs.msg import VioState
-from byte_subscriber import ByteSubscriber
+from nav_msgs.msg import Odometry
+from px4_msgs.msg import VehicleOdometry, VioState
 
-# current_path = str(pathlib.Path(__file__).parent.resolve())
-# capnp_schema_path = current_path + '/../src/capnp'
-capnp_schema_path = '/home/nk/Workspace/vio_ws/src/vision/src/capnp'
-capnp.add_import_hook([capnp_schema_path])
-
+current_path = str(pathlib.Path(__file__).parent.resolve())
+capnp.add_import_hook([current_path + '/../capnp'])
 import odometry3d_capnp as eCALOdometry3d
+
+from byte_subscriber import ByteSubscriber
 
 class RosOdometryPublisher(Node):
     def __init__(self):

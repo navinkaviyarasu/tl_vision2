@@ -5,3 +5,4 @@ log/
 .rosinstall
 .vscode/
 *.log
+src/vision/vision/test.py

@@ -21,9 +21,9 @@ setup(
     entry_points={
         'console_scripts': [
             'vio_bridge = vision.vio_bridge:main',
-            'vio_bridge_test = vision.vio_bridge_test:main',
             'vio_bridge_px4 = vision.vio_bridge_px4:main',
             'vicon_bridge = vision.vicon_bridge:main',
+            'vio_bridge_beta = vision.vio_px4_bridge_beta:main'
         ],
     },
 )
