@@ -2,6 +2,7 @@
 import rclpy
 import numpy as np
 from rclpy.node import Node
+
 #from tf2_ros import TransformBroadcaster
 from px4_msgs.msg import VehicleOdometry
 from rclpy.qos import QoSProfile, QoSHistoryPolicy, QoSReliabilityPolicy
@@ -86,9 +87,7 @@ class ViconOdometry(Node):
 
 def main(args=None):
 
-    global mocap_use
     rclpy.init(args=None)
-
     while True:
         try:
             mocap_use = int(input("Select the intended use of the mocap data:\n 1. EKF sensor fusion \n 2. Ground truth reference\n\n"))
@@ -105,8 +104,7 @@ def main(args=None):
     
         except ValueError as e:
             print(f"Error:{e}")
-    
-
+            
     vicon_node = ViconOdometry(mocap_use)
     rclpy.spin(vicon_node)
     vicon_node.destroy_node()
