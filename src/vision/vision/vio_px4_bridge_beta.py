@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
 
+# Future Scope:
+# Utilize ros parameters for sensor Type, Direction and Orientation
+# Establish tf
+# Using namespace for running the script for both the sensor Type
+# NOTE: But both can't publish data to /fmu/in/vehicle_visual_odometry topic
+# NOTE: Flight controller will handle as a single sensor data only & may lead to issues
+# 
+# WIP: Utilize ros parameters for sensor Type, Direction and Orientation
+
 import sys
 import pathlib
 
@@ -93,6 +102,20 @@ class OdometryPublisher(Node):
 		norm_lvel_ned = np.dot(r_total, l_velocity_ned)
 
 		return norm_pos_ned,norm_orient_ned, norm_lvel_ned
+	
+	def nwutoenuTransform(self, position_nwu, orientation_nwu):
+
+		nwu_to_enu_matrix = np.array([[0,1,0],
+								[-1,0,0],
+								[0,0,1]])
+
+		position_enu = np.dot(nwu_to_enu_matrix, position_nwu)
+
+		r_nwu = R.from_quat(orientation_nwu)
+		r_enu = r_nwu*R.from_matrix(nwu_to_enu_matrix)
+		orientation_enu = r_enu.as_quat()
+
+		return position_enu, orientation_enu
 
 	def nwutonedTransform(self, position_nwu, orientation_nwu, l_velocity_nwu):
 		
@@ -110,6 +133,24 @@ class OdometryPublisher(Node):
 		
 		return position_ned, orientation_ned, l_velocity_ned
 
+	def tfPublisher(self, position_nwu, orientation_nwu):
+
+		position_enu, orientation_enu = self.nwutoenuTransform(position_nwu, orientation_nwu)
+		#Note orientation_enu is in x,y,z,w order
+		tf = TransformStamped()
+		tf.header.stamp = self.get_clock().now().to_msg()
+		tf.header.frame_id = "odom"
+		tf.child_frame_id = "vk180"
+		tf.transform.translation.x = position_enu[0]
+		tf.transform.translation.y = position_enu[1]
+		tf.transform.translation.z = position_enu[2]
+		tf.transform.rotation.x = orientation_enu[0]
+		tf.transform.rotation.y = orientation_enu[1]
+		tf.transform.rotation.z = orientation_enu[2]
+		tf.transform.rotation.w = orientation_enu[3]
+
+		self.tf_broadcaster.sendTransform(tf)
+
 	def viostatePublisher(self, viostate_msg):
 		
 		self.viostate_pub.publish(viostate_msg)
@@ -123,7 +164,7 @@ class OdometryPublisher(Node):
 		vio_msg = VehicleOdometry()
 
 		vio_msg.timestamp = int(self.get_clock().now().nanoseconds/1000)
-		# vio_msg.timestamp_sample = 
+		# vio_msg.timestamp_sample = # Time at which the sensor data has been captured. Vilota gives stamp at monotonic time
 		vio_msg.pose_frame = 1
 		vio_msg.position = ned_odom_position.astype(np.float32)
 		vio_msg.q = ned_odom_q.astype(np.float32) # w, x, y, z order
@@ -216,6 +257,7 @@ class OdometryPublisher(Node):
 
 			self.odometryPublisher(n_pos_ned,nn_q_ned, n_l_vel_ned)
 			self.viostatePublisher(viostate_msg)
+			self.tfPublisher(position_nwu, orientation_nwu)
 
 			# tf_pose = vio_msg.pose.pose
 			# tf = TransformStamped()

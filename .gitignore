@@ -6,3 +6,5 @@ log/
 .vscode/
 *.log
 src/vision/vision/test.py
+src/vision/vision/__pycache__
+

@@ -7,12 +7,16 @@ from rclpy.node import Node
 from px4_msgs.msg import VehicleOdometry
 from rclpy.qos import QoSProfile, QoSHistoryPolicy, QoSReliabilityPolicy
 from geometry_msgs.msg import PoseStamped, TwistStamped, TransformStamped
+from rcl_interfaces.msg import ParameterDescriptor
 
 class ViconOdometry(Node):
-    def __init__(self, mocap_use):
+    def __init__(self):
 
         super().__init__('vicon_bridge')
-        self.mocap_use = mocap_use
+
+        mocap_use_description = ParameterDescriptor(description='\nIntended use of the mocap data:\n 1. EKF sensor fusion \n 2. Ground truth reference\n\n')
+        self.declare_parameter('mocap_use', 2, mocap_use_description) # 1.EKF Fusion 2.GroundTruth Reference
+
         self.latest_pose = None
         self.latest_twist = None
         qos_profile = QoSProfile(
@@ -25,7 +29,7 @@ class ViconOdometry(Node):
         self.create_subscription(PoseStamped, '/vrpn_mocap/Akira/pose', self.pose_callback, qos_profile)
         self.create_subscription(TwistStamped, '/vrpn_mocap/Akira/twist', self.twist_callback, qos_profile)
         #self.tf_broadcaster = TransformBroadcaster(self)
-        self.timer = self.create_timer(1.0/50.0, self.mocap_pub)
+        self.timer = self.create_timer(1.0/50.0, self.mocap_pub) #Runs at 50Hz
 
 
     def pose_callback(self, pose):
@@ -77,35 +81,35 @@ class ViconOdometry(Node):
 
             #self.tf_broadcaster.sendTransform(tf_msg)
 
-            if self.mocap_use == 1:
+            # mocap_use = self.get_parameter('parameter').get_parameter_value().integer_value
+            mocap_use = self.get_parameter('mocap_use').value
+            if mocap_use == 1:
                 self.mocap_odom_pub.publish(mocap_msg)
 
-            elif self.mocap_use == 2:
+            elif mocap_use == 2:
                 self.mocap_gt_pub.publish(mocap_msg)
 
             self.get_logger().info("Vicon Bridge Active")
 
 def main(args=None):
 
-    rclpy.init(args=None)
-    while True:
-        try:
-            mocap_use = int(input("Select the intended use of the mocap data:\n 1. EKF sensor fusion \n 2. Ground truth reference\n\n"))
-            if mocap_use ==1:
-                print("\n Mocap Odometry data has been selected for drone localization and will be fused with EKF\n")
-            
-            elif mocap_use == 2:
-                print("Mocap Odometry data has been selected for Ground truth reference only \n")
+    rclpy.init(args=args)
+    vicon_node = ViconOdometry()
 
-            elif mocap_use not in [1,2]:
-                raise ValueError("\n\n Select the appropriate usage of the mocap odometry data\n\n")
-            
-            break
+    mocap_use = vicon_node.get_parameter('mocap_use').value
+
+    while mocap_use not in [1,2]:
+        vicon_node.get_logger().error("Select the appropriate usage of the mocap odometry data")
+        vicon_node.get_logger().error(f"Current Parameters:\n mocap_use: {mocap_use}")
+        rclpy.spin_once(vicon_node)
+        mocap_use = vicon_node.get_parameter('mocap_use').value
+
+    if mocap_use ==1:
+        vicon_node.get_logger().info("\nMocap Odometry data has been selected for drone localization and will be fused with EKF\n")
     
-        except ValueError as e:
-            print(f"Error:{e}")
-            
-    vicon_node = ViconOdometry(mocap_use)
+    elif mocap_use == 2:
+        vicon_node.get_logger().info("\nMocap Odometry data has been selected for Ground truth reference only \n")
+        
     rclpy.spin(vicon_node)
     vicon_node.destroy_node()
     rclpy.shutdown()
