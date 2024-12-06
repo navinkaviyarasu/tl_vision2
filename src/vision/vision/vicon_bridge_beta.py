@@ -16,7 +16,7 @@ class ViconOdometry(Node):
         super().__init__('vicon_bridge')
 
         mocap_use_description = ParameterDescriptor(description='\nIntended use of the mocap data:\n 1. EKF sensor fusion \n 2. Ground truth reference\n\n')
-        self.declare_parameter('mocap_use', 0, mocap_use_description) # 1.EKF Fusion 2.GroundTruth Reference
+        self.declare_parameter('mocap_use', 2, mocap_use_description) # 1.EKF Fusion 2.GroundTruth Reference
 
         self.pose_enu = None
         self.twist_enu = None
@@ -34,17 +34,50 @@ class ViconOdometry(Node):
 
     def enutonedTransform(self, position_enu, orientation_enu, velocity_enu):
        
-        rot_enutoned = np.array([[0, 1, -0],
-                                [1, -0, 0],
-                                [0, -0, -1]])
+        rot_enutoned = np.array([[0, 1, 0],
+                                [1, 0, 0],
+                                [0, 0, -1]])
 
     
         position_ned = np.dot(rot_enutoned, position_enu)
         velocity_ned = np.dot(rot_enutoned, velocity_enu)
+        print(f"Orientation_ENU: {orientation_enu}")
 
         rot_enu = R.from_quat(orientation_enu)
         rot_ned = rot_enu*R.from_matrix(rot_enutoned)
         orientation_ned = rot_ned.as_quat()
+        print(f"Orientation_NED_A1: {orientation_ned}")
+
+        rot_obj = R.from_matrix(rot_enutoned)
+        # print("___", type(rot_obj))
+        enurot_obj = R.from_quat(orientation_enu)
+        orientation_ned_a2 = (rot_obj*enurot_obj).as_quat()
+        print(f"Orientation_NED_A2: {orientation_ned_a2}")
+
+        euler_enu = R.from_quat(orientation_enu)
+        e_enu = euler_enu.as_euler('xyz', degrees=True)
+
+        euler_ned = np.dot(rot_enutoned, e_enu)
+        q_ned = R.from_euler('xyz', euler_ned, degrees=True).as_quat()
+        print(f"Orientation_NED_A3: {q_ned}")
+
+        print(f'Euler ENU:{e_enu}, EULER NED: {euler_ned}')
+
+        # print(f"Euler ENU:{np.degrees(e_enu[0]):.2f}, {np.degrees(e_enu[1]):.2f}, {np.degrees(e_enu[2]):.2f}")
+        #     #   Euler NED:{euler_ned}")
+        # obj_enu = R.from_quat(orientation_enu)
+        # obj_ned = obj_enu.apply(rot_enutoned)
+        # orientation_ned_a3 = obj_ned.as_quat()
+        # print(f"Orientation_NED_A3: {orientation_ned_a3}")
+
+        # enu_obj = R.from_quat(orientation_enu)
+        # enu_mat = enu_obj.as_matrix()
+        # ned_mat = rot_enutoned@enu_mat@rot_enutoned.T
+        # ned_obj = R.from_matrix(ned_mat)
+        # orientation_ned_a4 = ned_obj.as_quat()
+        # print(f"Orientation_NED_A4: {orientation_ned_a4}")
+
+
 
         return position_ned, orientation_ned, velocity_ned
 
@@ -73,15 +106,15 @@ class ViconOdometry(Node):
             # mocap_msg.position_variance = np.NaN
             # mocap_msg.orientation_variance = np.NaN
             # mocap_msg.velocity_variance = np.NaN
-
+            # print("Odometrt_Q:", mocap_msg.q)
             mocap_use = self.get_parameter('mocap_use').value
             if mocap_use == 1:
                 self.mocap_odom_pub.publish(mocap_msg)
-                self.get_logger().info("Vicon Bridge Active as EKF source")
+                # self.get_logger().info("Vicon Bridge Active as EKF source")
 
             elif mocap_use == 2:
                 self.mocap_gt_pub.publish(mocap_msg)
-                self.get_logger().info("Vicon Bridge Active as Ground Truth reference")
+                # self.get_logger().info("Vicon Bridge Active as Ground Truth reference")
 
     def tfPublisher(self, position_enu, orientation_enu):
 
@@ -115,7 +148,8 @@ class ViconOdometry(Node):
             position_ned, orientation_ned, velocity_ned = self.enutonedTransform(
                 position_enu, orientation_enu, velocity_enu
             )
-
+            # print(f"ENU Frame:\nPosition: {position_enu}, Orientation: {orientation_enu}, Velocity: {velocity_enu}")
+            # print(f"NED Frame:\nPosition: {position_ned}, Orientation: {orientation_ned}, Velocity: {velocity_ned}")
             self.mocapOdomPublisher(position_ned, orientation_ned, velocity_ned)
             self.tfPublisher(position_enu, orientation_enu)
 
