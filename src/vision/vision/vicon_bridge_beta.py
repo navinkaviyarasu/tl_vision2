@@ -2,13 +2,13 @@
 import rclpy
 import numpy as np
 from rclpy.node import Node
+from scipy.spatial.transform import Rotation as R
 
 from tf2_ros import TransformBroadcaster
 from px4_msgs.msg import VehicleOdometry
+from rcl_interfaces.msg import ParameterDescriptor
 from rclpy.qos import QoSProfile, QoSHistoryPolicy, QoSReliabilityPolicy
 from geometry_msgs.msg import PoseStamped, TwistStamped, TransformStamped
-from rcl_interfaces.msg import ParameterDescriptor
-from scipy.spatial.transform import Rotation as R
 
 class ViconOdometry(Node):
     def __init__(self):
@@ -16,10 +16,10 @@ class ViconOdometry(Node):
         super().__init__('vicon_bridge')
 
         mocap_use_description = ParameterDescriptor(description='\nIntended use of the mocap data:\n 1. EKF sensor fusion \n 2. Ground truth reference\n\n')
-        self.declare_parameter('mocap_use', 2, mocap_use_description) # 1.EKF Fusion 2.GroundTruth Reference
+        self.declare_parameter('mocap_use', 0, mocap_use_description) # 1.EKF Fusion 2.GroundTruth Reference
 
-        self.latest_pose = None
-        self.latest_twist = None
+        self.pose_enu = None
+        self.twist_enu = None
         qos_profile = QoSProfile(
             history=QoSHistoryPolicy.KEEP_LAST,
             depth=10,
@@ -31,7 +31,6 @@ class ViconOdometry(Node):
         self.create_subscription(TwistStamped, '/vrpn_mocap/Akira/twist', self.twist_callback, qos_profile)
         self.tf_broadcaster = TransformBroadcaster(self)
         self.timer = self.create_timer(1.0/50.0, self.mocap_pub) #Runs at 50Hz
-
 
     def enutonedTransform(self, position_enu, orientation_enu, velocity_enu):
        
@@ -47,14 +46,14 @@ class ViconOdometry(Node):
         rot_ned = rot_enu*R.from_matrix(rot_enutoned)
         orientation_ned = rot_ned.as_quat()
 
-        return position_ned, velocity_ned, orientation_ned
+        return position_ned, orientation_ned, velocity_ned
 
     def pose_callback(self, pose_enu):
 
         self.pose_enu = pose_enu
 
-
     def twist_callback(self, twist_enu):
+
         self.twist_enu = twist_enu
 
     def mocapOdomPublisher(self, position_ned, orientation_ned, velocity_ned):
@@ -63,13 +62,13 @@ class ViconOdometry(Node):
 
             mocap_msg.timestamp = int(self.get_clock().now().nanoseconds/1000)
             mocap_msg.pose_frame = 1
-            mocap_msg.position = position_ned
-            mocap_msg.q[0] = orientation_ned[3]
-            mocap_msg.q[1] = orientation_ned[0]
-            mocap_msg.q[2] = orientation_ned[1]
-            mocap_msg.q[3] = orientation_ned[2]
+            mocap_msg.position = position_ned.astype(np.float32)
+            mocap_msg.q[0] = orientation_ned[3].astype(np.float32)
+            mocap_msg.q[1] = orientation_ned[0].astype(np.float32)
+            mocap_msg.q[2] = orientation_ned[1].astype(np.float32)
+            mocap_msg.q[3] = orientation_ned[2].astype(np.float32)
             mocap_msg.velocity_frame = 1
-            mocap_msg.velocity = velocity_ned
+            mocap_msg.velocity = velocity_ned.astype(np.float32)
             mocap_msg.angular_velocity[:] = np.NaN
             # mocap_msg.position_variance = np.NaN
             # mocap_msg.orientation_variance = np.NaN
@@ -78,11 +77,11 @@ class ViconOdometry(Node):
             mocap_use = self.get_parameter('mocap_use').value
             if mocap_use == 1:
                 self.mocap_odom_pub.publish(mocap_msg)
+                self.get_logger().info("Vicon Bridge Active as EKF source")
 
             elif mocap_use == 2:
                 self.mocap_gt_pub.publish(mocap_msg)
-
-            self.get_logger().info("Vicon Bridge Active")
+                self.get_logger().info("Vicon Bridge Active as Ground Truth reference")
 
     def tfPublisher(self, position_enu, orientation_enu):
 

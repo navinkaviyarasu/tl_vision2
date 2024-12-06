@@ -6,7 +6,7 @@
 # Using namespace for running the script for both the sensor Type
 # NOTE: But both can't publish data to /fmu/in/vehicle_visual_odometry topic
 # NOTE: Flight controller will handle as a single sensor data only & may lead to issues
-# 
+# TODO: Error in orientation received at FC, Debugging required!
 # WIP: Utilize ros parameters for sensor Type, Direction and Orientation
 
 import sys
