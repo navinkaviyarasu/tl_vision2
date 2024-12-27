@@ -38,7 +38,6 @@ class ViconOdometry(Node):
                                 [1, 0, 0],
                                 [0, 0, -1]])
 
-    
         position_ned = np.dot(rot_enutoned, position_enu)
         velocity_ned = np.dot(rot_enutoned, velocity_enu)
         print(f"Orientation_ENU: {orientation_enu}")
@@ -76,8 +75,6 @@ class ViconOdometry(Node):
         # ned_obj = R.from_matrix(ned_mat)
         # orientation_ned_a4 = ned_obj.as_quat()
         # print(f"Orientation_NED_A4: {orientation_ned_a4}")
-
-
 
         return position_ned, orientation_ned, velocity_ned
 
