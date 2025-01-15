@@ -3,12 +3,56 @@ import rclpy
 import numpy as np
 from rclpy.node import Node
 from scipy.spatial.transform import Rotation as R
+import scipy.linalg
 
 from tf2_ros import TransformBroadcaster
 from px4_msgs.msg import VehicleOdometry
 from rcl_interfaces.msg import ParameterDescriptor
 from rclpy.qos import QoSProfile, QoSHistoryPolicy, QoSReliabilityPolicy
 from geometry_msgs.msg import PoseStamped, TwistStamped, TransformStamped
+
+
+
+class Quaternion:
+    def __init__(self, w, x, y, z):
+        self.w = w
+        self.x = x
+        self.y = y
+        self.z = z
+
+    def conjugate(self):
+        # Return the conjugate of the quaternion (w, -x, -y, -z)
+        return Quaternion(self.w, -self.x, -self.y, -self.z)
+
+    def __mul__(self, other):
+        # Multiply this quaternion by another quaternion
+        w = self.w * other.w - self.x * other.x - self.y * other.y - self.z * other.z
+        x = self.w * other.x + self.x * other.w + self.y * other.z - self.z * other.y
+        y = self.w * other.y - self.x * other.z + self.y * other.w + self.z * other.x
+        z = self.w * other.z + self.x * other.y - self.y * other.x + self.z * other.w
+        return Quaternion(w, x, y, z)
+
+    def __repr__(self):
+        return f"({self.w}, {self.x}, {self.y}, {self.z})"
+
+# # Define the quaternion for a 90-degree rotation about the Z-axis
+# q_Z90 = Quaternion(np.sqrt(2)/2, 0, 0, np.sqrt(2)/2)
+
+# # Define the quaternion for a 180-degree rotation about the X-axis
+# q_X180 = Quaternion(0, 1, 0, 0)
+
+# # The combined frame rotation quaternion (ENU to NED)
+# q_frame_rotation = q_Z90 * q_X180
+
+# # Define the quaternion representing the orientation in the ENU frame (example)
+# q_ENU = Quaternion(1, 2, 3, 4)
+
+# # Compute the NED quaternion using the formula q_NED = q_frame_rotation * q_ENU * q_frame_rotation.conjugate()
+# q_NED = q_frame_rotation * q_ENU * q_frame_rotation.conjugate()
+
+# # Print the resulting NED quaternion
+# print("q_NED:", q_NED)
+
 
 class ViconOdometry(Node):
     def __init__(self):
@@ -32,35 +76,96 @@ class ViconOdometry(Node):
         self.tf_broadcaster = TransformBroadcaster(self)
         self.timer = self.create_timer(1.0/50.0, self.mocap_pub) #Runs at 50Hz
 
+    def quaternion_mulitply(self, q1, q2):
+    
+        x = q1[3] * q2[0] + q1[0] * q2[3] + q1[1] * q2[2] - q1[2] * q2[1]
+        y = q1[3] * q2[1] + q1[1] * q2[3] + q1[2] * q2[0] - q1[0] * q2[2]
+        z = q1[3] * q2[2] + q1[2] * q2[3] + q1[0] * q2[1] - q1[1] * q2[0]
+        w = q1[3] * q2[3] - q1[0] * q2[0] - q1[1] * q2[1] - q1[2] * q2[2]
+
+        orient_ned= np.array([x, y, z, w])
+        return orient_ned
+    
     def enutonedTransform(self, position_enu, orientation_enu, velocity_enu):
        
         rot_enutoned = np.array([[0, 1, 0],
-                                [1, 0, 0],
-                                [0, 0, -1]])
+                                 [1, 0, 0],
+                                 [0, 0, -1]])
+        
+        # orth_check = scipy.linalg.det(rot_enutoned)
+
+        # print(orth_check)
 
         position_ned = np.dot(rot_enutoned, position_enu)
         velocity_ned = np.dot(rot_enutoned, velocity_enu)
         print(f"Orientation_ENU: {orientation_enu}")
 
-        rot_enu = R.from_quat(orientation_enu)
-        rot_ned = rot_enu*R.from_matrix(rot_enutoned)
-        orientation_ned = rot_ned.as_quat()
-        print(f"Orientation_NED_A1: {orientation_ned}")
+        # Define the quaternion for a 90-degree rotation about the Z-axis
+        q_Z90 = Quaternion(np.sqrt(2)/2, 0, 0, np.sqrt(2)/2)
 
-        rot_obj = R.from_matrix(rot_enutoned)
-        # print("___", type(rot_obj))
-        enurot_obj = R.from_quat(orientation_enu)
-        orientation_ned_a2 = (rot_obj*enurot_obj).as_quat()
-        print(f"Orientation_NED_A2: {orientation_ned_a2}")
+        # Define the quaternion for a 180-degree rotation about the X-axis
+        q_X180 = Quaternion(0, 1, 0, 0)
 
-        euler_enu = R.from_quat(orientation_enu)
-        e_enu = euler_enu.as_euler('xyz', degrees=True)
+        # The combined frame rotation quaternion (ENU to NED)
+        q_frame_rotation = q_Z90 * q_X180
 
-        euler_ned = np.dot(rot_enutoned, e_enu)
-        q_ned = R.from_euler('xyz', euler_ned, degrees=True).as_quat()
-        print(f"Orientation_NED_A3: {q_ned}")
+        # Define the quaternion representing the orientation in the ENU frame (example)
+        q_ENU = Quaternion(0,0,0,1)
 
-        print(f'Euler ENU:{e_enu}, EULER NED: {euler_ned}')
+        # Compute the NED quaternion using the formula q_NED = q_frame_rotation * q_ENU * q_frame_rotation.conjugate()
+        q_NED = q_frame_rotation * q_ENU * q_frame_rotation.conjugate()
+
+        # Print the resulting NED quaternion
+        print("q_NED:", q_NED)
+
+        # qx, qy, qz, qw = orientation_enu
+
+        # q_vec_enu = np.array([qx, qy, qz])
+        # q_vec_ned = np.dot(rot_enutoned, q_vec_enu)
+        # ned_quaternion = np.hstack([q_vec_ned, qw])   
+        # print(f"Orientation_NED_A0: {ned_quaternion}")    
+        
+        # rot_enu = R.from_quat(orientation_enu)
+        # ROT_ENU2NED = R.from_matrix(rot_enutoned) 
+        # rot_ned = rot_enu * ROT_ENU2NED
+        # # print("Test___", R.__len__(rot_enu))
+        # q_test = rot_ned.as_quat()
+        # orient_euler = rot_ned.as_euler('XYZ', degrees = True)
+        # # orientation_ned2 = rot_ned.as_matrix()
+        # print(f"q_test: ({q_test[0], q_test[1], q_test[2], q_test[3]})")
+        # print(f"Orientation in NED [RPY]: {orient_euler}")
+        # # print(f"Orientation_NED_A1: {orientation_ned2}")
+
+
+
+        # rot_obj = R.from_matrix(rot_enutoned)
+        # # print("___", type(rot_obj))
+        # enurot_obj = R.from_quat(orientation_enu)
+        # orientation_ned_a2 = (rot_obj*enurot_obj).as_quat()
+        # print(f"Orientation_NED_A2: {orientation_ned_a2}")
+
+        # euler_enu = R.from_quat(orientation_enu)
+        # e_enu = euler_enu.as_euler('xyz', degrees=True)
+
+        # euler_ned = np.dot(rot_enutoned, e_enu)
+        # q_ned = R.from_euler('xyz', euler_ned, degrees=True).as_quat()
+        # print(f"Orientation_NED_A3: {q_ned}")
+
+        # print(f'Euler ENU:{e_enu}, EULER NED: {euler_ned}')
+
+        ############################
+        # Taking rotation from the matrix, i.e., the rotation will be z=90deg, y=0deg & x=180deg
+        # q_rotation_obj = R.from_matrix(rot_enutoned)
+        # q_rot = q_rotation_obj.as_quat()
+        # print("Implicit rotation q", q_rot)
+
+        # #Taking rotation explicitly and the below mentioned rotation is just z=90deg
+        # q_rotation = np.array([0, 0, np.sin(np.pi/4), np.cos(np.pi/4)])
+        # print("Explicit rotation q", q_rotation)
+        # explicit_orient_ned = self.quaternion_mulitply(q_rotation, orientation_enu)
+        # implicit_orient_ned = self.quaternion_mulitply(q_rot, orientation_enu)
+        # print(f"Quaternion_NED_explicit: {explicit_orient_ned}")
+        # print(f"Quaternion_NED_implicit: {implicit_orient_ned}")
 
         # print(f"Euler ENU:{np.degrees(e_enu[0]):.2f}, {np.degrees(e_enu[1]):.2f}, {np.degrees(e_enu[2]):.2f}")
         #     #   Euler NED:{euler_ned}")
