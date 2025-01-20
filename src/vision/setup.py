@@ -20,11 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'vio_bridge = vision.vio_bridge:main',
-            'vio_bridge_px4 = vision.vio_bridge_px4:main',
-            'vicon_bridge = vision.vicon_bridge:main',
-            'vio_bridge_beta = vision.vio_px4_bridge_beta:main',
-            'vicon_beta = vision.vicon_bridge_beta:main'
+            'vio_bridge_px4 = vision.vio_px4_bridge_stable:main',
+            'vicon_bridge = vision.vicon_bridge_stable:main',
         ],
     },
 )

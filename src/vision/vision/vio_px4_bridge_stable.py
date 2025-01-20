@@ -95,6 +95,7 @@ class OdometryPublisher(Node):
 
 		norm_pos_ned = np.dot(r_total, position_ned)
 
+		#NOTE: Is it working as expected?
 		r_ned = R.from_quat(orientation_ned)
 		norm_orient_ned = r_ned*R.from_matrix(r_total)
 		norm_orient_ned = norm_orient_ned.as_quat() #Quaternion in x,y,z,w order
@@ -103,7 +104,7 @@ class OdometryPublisher(Node):
 
 		return norm_pos_ned,norm_orient_ned, norm_lvel_ned
 	
-	def nwutoenuTransform(self, position_nwu, orientation_nwu):
+	# def nwutoenuTransform(self, position_nwu, orientation_nwu):
 
 		nwu_to_enu_matrix = np.array([[0,1,0],
 								[-1,0,0],
@@ -117,7 +118,7 @@ class OdometryPublisher(Node):
 
 		return position_enu, orientation_enu
 
-	def nwutonedTransform(self, position_nwu, orientation_nwu, l_velocity_nwu):
+	# def nwutonedTransform(self, position_nwu, orientation_nwu, l_velocity_nwu):
 		
 		nwu_to_ned_matrix = np.array([[1,0,0],
 					  [0,-1,0],
@@ -133,7 +134,7 @@ class OdometryPublisher(Node):
 		
 		return position_ned, orientation_ned, l_velocity_ned
 
-	def tfPublisher(self, position_nwu, orientation_nwu):
+	# def tfPublisher(self, position_nwu, orientation_nwu):
 
 		position_enu, orientation_enu = self.nwutoenuTransform(position_nwu, orientation_nwu)
 		#Note orientation_enu is in x,y,z,w order
@@ -155,10 +156,10 @@ class OdometryPublisher(Node):
 		
 		self.viostate_pub.publish(viostate_msg)
 
-	def odometryPublisher(self, n_pos_ned,n_q_ned, n_l_vel_ned):
+	def odometryPublisher(self, n_pos_ned,nn_q_ned, n_l_vel_ned):
 
 		ned_odom_position = n_pos_ned
-		ned_odom_q = n_q_ned
+		ned_odom_q = nn_q_ned
 		ned_odom_l_velocity = n_l_vel_ned
 
 		vio_msg = VehicleOdometry()
@@ -263,22 +264,7 @@ class OdometryPublisher(Node):
 
 			self.odometryPublisher(n_pos_ned,nn_q_ned, n_l_vel_ned)
 			self.viostatePublisher(viostate_msg)
-			self.tfPublisher(position_nwu, orientation_nwu)
-
-			# tf_pose = vio_msg.pose.pose
-			# tf = TransformStamped()
-			# tf.header.stamp = self.get_clock().now().to_msg()
-			# tf.header.frame_id = vio_msg.header.frame_id
-			# tf.child_frame_id = vio_msg.child_frame_id
-			# tf.transform.translation.x = tf_pose.position.x
-			# tf.transform.translation.y = tf_pose.position.y
-			# tf.transform.translation.z = tf_pose.position.z
-			# tf.transform.rotation.x = tf_pose.orientation.x
-			# tf.transform.rotation.y = tf_pose.orientation.y
-			# tf.transform.rotation.z = tf_pose.orientation.z
-			# tf.transform.rotation.w = tf_pose.orientation.w
-
-			# self.tf_broadcaster.sendTransform(tf)
+			# self.tfPublisher(position_nwu, orientation_nwu)
 
 def main():
 

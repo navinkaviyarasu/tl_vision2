@@ -127,6 +127,8 @@ class OdometryPublisher(Node):
 
 		l_velocity_ned = np.dot(nwu_to_ned_matrix, l_velocity_nwu)
 
+		#BUG: This method doesn't work as expected
+		
 		r_nwu = R.from_quat(orientation_nwu) #Input quaternion in x,y,z,w order
 		r_ned = r_nwu*R.from_matrix(nwu_to_ned_matrix)
 		orientation_ned = r_ned.as_quat() # Quaternion in x,y,z,w order
@@ -330,7 +332,9 @@ def main():
 
 	yaw, pitch, roll = map(float, input().split())
 	sensorOrientation = np.array([yaw,pitch,roll]) #Orientation of the sensor WRT to FRD frame
+
 	# TODO: Output to screen - consolidated sensor information - Type, Orientation & Direction
+
 	print(f"\neCAL-ROS bridge subscribe topic: {ecal_topic}")
 	rclpy.init()
 	odometry_Publisher = OdometryPublisher(sensorOrientation, sensorType, sensorDirection)
