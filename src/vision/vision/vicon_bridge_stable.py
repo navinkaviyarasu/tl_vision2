@@ -43,13 +43,20 @@ class ViconOdometry(Node):
         velocity_ned = np.dot(rot_enutoned, velocity_enu)
 
         #NOTE: This method currently not working, requires some work
+
+        #TODO: Update scipy library for scalar position modification on quaternion - scalar first/scalar last
+
         # rot_enu = R.from_quat(orientation_enu)
         # rot_ned = rot_enu*R.from_matrix(rot_enutoned)
         # orientation_ned = rot_ned.as_quat()
 
-        #NOTE: Alternate Method: To change quaternion orientation from ENU to NED coordinate frame, but remember drone facing EAST is taken as yaw=0 deg
+        #NOTE: Alternate Method: To change quaternion orientation from ENU to NED coordinate frame, 
+        #but remember drone facing EAST is taken as yaw=0 deg
 
-        
+        qx, qy, qz, qw = orientation_enu
+        q_vec_enu = np.array([qx, qy, qz])
+        q_vec_ned = np.dot(rot_enutoned, q_vec_enu)
+        orientation_ned = np.hstack([q_vec_ned, qw]) #Quaternion in x,y,z,w order
 
         return position_ned, orientation_ned, velocity_ned
 
