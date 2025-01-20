@@ -298,12 +298,12 @@ def main():
 			if sensorType == 1:
 				# print("\nSelected external vision source is VK180Pro")
 				visionModule = "VK180Pro"
-				ecal_topic = "S1/vio_odom"
+				ecal_topic = "S1/vio_odom_ned"
 
 			elif sensorType == 2:
 				# print("\nSelected external vision source is VK180")
 				visionModule = "VK180"
-				ecal_topic = "S0/vio_odom"
+				ecal_topic = "S0/vio_odom_ned"
 
 			if sensorType not in [1,2]:
 				raise ValueError("Sensor type doesn't exist! Choose from the available option!")

@@ -42,9 +42,14 @@ class ViconOdometry(Node):
         position_ned = np.dot(rot_enutoned, position_enu)
         velocity_ned = np.dot(rot_enutoned, velocity_enu)
 
-        rot_enu = R.from_quat(orientation_enu)
-        rot_ned = rot_enu*R.from_matrix(rot_enutoned)
-        orientation_ned = rot_ned.as_quat()
+        #NOTE: This method currently not working, requires some work
+        # rot_enu = R.from_quat(orientation_enu)
+        # rot_ned = rot_enu*R.from_matrix(rot_enutoned)
+        # orientation_ned = rot_ned.as_quat()
+
+        #NOTE: Alternate Method: To change quaternion orientation from ENU to NED coordinate frame, but remember drone facing EAST is taken as yaw=0 deg
+
+        
 
         return position_ned, orientation_ned, velocity_ned
 
