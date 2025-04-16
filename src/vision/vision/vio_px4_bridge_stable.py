@@ -103,6 +103,22 @@ class OdometryPublisher(Node):
 		norm_lvel_ned = np.dot(r_total, l_velocity_ned)
 
 		return norm_pos_ned,norm_orient_ned, norm_lvel_ned
+
+	def normalizeToBodyFrame_final(self, orientation_ned):
+		
+		yaw, pitch, roll = self.sensorOrientation
+		r_total = R.from_euler('zyx', [yaw,pitch,roll], degrees=True).as_matrix()
+
+		# norm_pos_ned = np.dot(r_total, position_ned)
+
+		#NOTE: Is it working as expected?
+		r_ned = R.from_quat(orientation_ned)
+		norm_orient_ned = r_ned*R.from_matrix(r_total)
+		norm_orient_ned = norm_orient_ned.as_quat() #Quaternion in x,y,z,w order
+
+		# norm_lvel_ned = np.dot(r_total, l_velocity_ned)
+
+		return norm_orient_ned
 	
 	# def nwutoenuTransform(self, position_nwu, orientation_nwu):
 
@@ -244,8 +260,13 @@ class OdometryPublisher(Node):
 				l_velocity_ned[1] = -(l_velocity_ned[1])
 				l_velocity_ned[2] = l_velocity_ned[2]
 
-			n_pos_ned, n_q_ned, n_l_vel_ned = self.normalizeToBodyFrame(position_ned,
-															   orientation_ned, l_velocity_ned)
+			# n_pos_ned, n_q_ned, n_l_vel_ned = self.normalizeToBodyFrame(position_ned,
+			# 												   orientation_ned, l_velocity_ned)
+
+			n_pos_ned = position_ned
+			n_q_ned = self.normalizeToBodyFrame_final(orientation_ned)
+			n_l_vel_ned = l_velocity_ned
+			
 			
 			#convert quaternion to w,x,y,z order
 			nn_q_ned = np.zeros(4)
