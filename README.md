@@ -18,8 +18,7 @@ colcon build --symlink-install
 ```
 
 Dependencies:
-
-setuptools 59.6.0
-wheel 0.37.1
-pycapnp 1.3.0
+- setuptools 59.6.0
+- wheel 0.37.1
+- pycapnp 1.3.0
 
