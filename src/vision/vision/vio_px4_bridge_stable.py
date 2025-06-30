@@ -120,23 +120,6 @@ class OdometryPublisher(Node):
 
 		return norm_orient_ned
 	
-
-	def normalizeToBodyFrame_final(self, orientation_ned):
-		
-		yaw, pitch, roll = self.sensorOrientation
-		r_total = R.from_euler('zyx', [yaw,pitch,roll], degrees=True).as_matrix()
-
-		# norm_pos_ned = np.dot(r_total, position_ned)
-
-		#NOTE: Is it working as expected?
-		r_ned = R.from_quat(orientation_ned)
-		norm_orient_ned = r_ned*R.from_matrix(r_total)
-		norm_orient_ned = norm_orient_ned.as_quat() #Quaternion in x,y,z,w order
-
-		# norm_lvel_ned = np.dot(r_total, l_velocity_ned)
-
-		return norm_orient_ned
-	
 	# def nwutoenuTransform(self, position_nwu, orientation_nwu):
 
 		nwu_to_enu_matrix = np.array([[0,1,0],
