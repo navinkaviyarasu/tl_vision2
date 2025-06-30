@@ -299,50 +299,58 @@ def main():
 	# as the coordinate from orientation of the vk180 & vk180pro are different
 	# TODO: To be replaced by ros_parameters
 
-	while True:
-		try:
-			sensorType = int(input("Select the external vision source type:\n 1. VK180Pro \n 2. VK180\n\n"))
-			if sensorType == 1:
-				# print("\nSelected external vision source is VK180Pro")
-				visionModule = "VK180Pro"
-				ecal_topic = "S1/vio_odom_ned"
+	# while True:
+	# 	try:
+	# 		sensorType = int(input("Select the external vision source type:\n 1. VK180Pro \n 2. VK180\n\n"))
+	# 		if sensorType == 1:
+	# 			# print("\nSelected external vision source is VK180Pro")
+	# 			visionModule = "VK180Pro"
+	# 			ecal_topic = "S1/vio_odom_ned"
 
-			elif sensorType == 2:
-				# print("\nSelected external vision source is VK180")
-				visionModule = "VK180"
-				ecal_topic = "S0/vio_odom_ned"
+	# 		elif sensorType == 2:
+	# 			# print("\nSelected external vision source is VK180")
+	# 			visionModule = "VK180"
+	# 			ecal_topic = "S0/vio_odom_ned"
 
-			if sensorType not in [1,2]:
-				raise ValueError("Sensor type doesn't exist! Choose from the available option!")
+	# 		if sensorType not in [1,2]:
+	# 			raise ValueError("Sensor type doesn't exist! Choose from the available option!")
 			
-			break
+	# 		break
 
-		except ValueError as e:
-			print(f"\nError:{e}")
+	# 	except ValueError as e:
+	# 		print(f"\nError:{e}")
 		
-	while True:
-		try:
-			sensorDirection = int(input(f"\nSelect the heading direction of {visionModule}\n\n1.Forward_Facing\n2.Backward_Facing\n\n"))
-			if sensorDirection == 1:
-				pass
+	# while True:
+	# 	try:
+	# 		sensorDirection = int(input(f"\nSelect the heading direction of {visionModule}\n\n1.Forward_Facing\n2.Backward_Facing\n\n"))
+	# 		if sensorDirection == 1:
+	# 			pass
 
-			elif sensorDirection == 2:
-				pass
+	# 		elif sensorDirection == 2:
+	# 			pass
 
-			if sensorDirection not in [1,2]:
-				raise ValueError("Heading direction not applicable!Choose from the available options!")
+	# 		if sensorDirection not in [1,2]:
+	# 			raise ValueError("Heading direction not applicable!Choose from the available options!")
 			
-			break
+	# 		break
 
-		except ValueError as e:
-			print(f"\nError:{e}")
+	# 	except ValueError as e:
+	# 		print(f"\nError:{e}")
 
-	# parameter to normalizeToBodyFrame the mounting orientation of the vision module
-	print("""\nEnter the mount orientation of the vision module with respect
-	   to the body frame FRD in order of yaw, pitch and roll (in degrees): """)
+	# # parameter to normalizeToBodyFrame the mounting orientation of the vision module
+	# print("""\nEnter the mount orientation of the vision module with respect
+	#    to the body frame FRD in order of yaw, pitch and roll (in degrees): """)
 
-	yaw, pitch, roll = map(float, input().split())
-	sensorOrientation = np.array([yaw,pitch,roll]) #Orientation of the sensor WRT to FRD frame
+	# yaw, pitch, roll = map(float, input().split())
+	# sensorOrientation = np.array([yaw,pitch,roll]) #Orientation of the sensor WRT to FRD frame
+
+	#Hardcoded values for sensorType, sensorDirection and sensorOrientation 
+
+	sensorType =1
+	sensorDirection =1
+	sensorOrientation =np.array([0, -10, 0])
+	ecal_topic = "S1/vio_odom_ned"
+
 	# TODO: Output to screen - consolidated sensor information - Type, Orientation & Direction
 	print(f"\neCAL-ROS bridge subscribe topic: {ecal_topic}")
 	rclpy.init()
