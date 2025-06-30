@@ -1,8 +1,6 @@
 # tl_vision2 - A ROS2 package to integrate the Vilota vision modules onto PX4
 
-:::note
-Works and experiments were carried out on Ubuntu 20.04 Focal and ROS2 Foxy
-:::
+***NOTE:*** Development was carried out on Ubuntu 20.04 Focal and ROS2 Foxy
 
 1. Clone the repo using the following command
 
