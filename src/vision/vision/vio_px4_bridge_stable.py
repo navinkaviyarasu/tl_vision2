@@ -102,7 +102,7 @@ class OdometryPublisher(Node):
 
 		# Publishers
 		self.vio_odom_pub = self.create_publisher(VehicleOdometry, f'{self.namespace_prefix}/fmu/in/vehicle_visual_odometry', 10)
-		self.mocap_odom_pub = self.create_publisher(VehicleOdometry, f'{self.namespace_prefix}fmu/in/vehicle_mocap_odometry', 10)
+		self.mocap_odom_pub = self.create_publisher(VehicleOdometry, f'{self.namespace_prefix}/fmu/in/vehicle_mocap_odometry', 10)
 		self.viostate_pub = self.create_publisher(VioState, f'{self.namespace_prefix}/fmu/in/vio_state', 10)
 
 		# TF broadcaster
