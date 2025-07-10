@@ -83,7 +83,7 @@ class OdometryPublisher(Node):
 		# Publishers
 		self.vio_odom_pub = self.create_publisher(VehicleOdometry, '/fmu/in/vehicle_visual_odometry', 10)
 		self.mocap_odom_pub = self.create_publisher(VehicleOdometry,'fmu/in/vehicle_mocap_odometry', 10)
-		self.viostate_pub = self.create_publisher(VioState, '/vision/vio_state', 10)
+		self.viostate_pub = self.create_publisher(VioState, '/fmu/in/vio_state', 10)
 
 		# TF broadcaster
 		self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
@@ -290,7 +290,7 @@ class OdometryPublisher(Node):
 def main():
 
 	print(f"eCAL {ecal_core.getversion()} ({ecal_core.getdate()})\n")
-	ecal_core.initialize(sys.argv, "test_odometry_sub")
+	ecal_core.initialize(sys.argv, "vio_px4_bridge")
 	ecal_core.set_process_state(1, 1, "I feel good")
 
 	# parameter to select the type/make of the vision module, heading direction of 
