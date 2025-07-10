@@ -5,6 +5,7 @@ log/
 .rosinstall
 .vscode/
 *.log
+*.pyc
 src/vision/vision/test.py
 src/vision/vision/__pycache__
 src/offboard_controller/offboard_controller/__pycache__
