@@ -80,10 +80,30 @@ class OdometryPublisher(Node):
 		self.sensorType = sensorType
 		self.sensorDirection = sensorDirection
 
+        # Declare and retrieve the namespace parameter
+		self.declare_parameter('namespace', '')  # Default to empty namespace
+		self.namespace = self.get_parameter('namespace').value
+		self.namespace_prefix = f'/{self.namespace}' if self.namespace else ''
+        
+                # QoS profiles
+		# qos_profile_pub = QoSProfile(
+        #     reliability=QoSReliabilityPolicy.BEST_EFFORT,
+        #     durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
+        #     history=QoSHistoryPolicy.KEEP_LAST,
+        #     depth=0
+        # )
+		
+		# qos_profile_sub = QoSProfile(
+        #     reliability=QoSReliabilityPolicy.BEST_EFFORT,
+        #     durability=QoSDurabilityPolicy.VOLATILE,
+        #     history=QoSHistoryPolicy.KEEP_LAST,
+        #     depth=0
+        # )
+
 		# Publishers
-		self.vio_odom_pub = self.create_publisher(VehicleOdometry, '/fmu/in/vehicle_visual_odometry', 10)
-		self.mocap_odom_pub = self.create_publisher(VehicleOdometry,'fmu/in/vehicle_mocap_odometry', 10)
-		self.viostate_pub = self.create_publisher(VioState, '/fmu/in/vio_state', 10)
+		self.vio_odom_pub = self.create_publisher(VehicleOdometry, f'{self.namespace_prefix}/fmu/in/vehicle_visual_odometry', 10)
+		self.mocap_odom_pub = self.create_publisher(VehicleOdometry, f'{self.namespace_prefix}fmu/in/vehicle_mocap_odometry', 10)
+		self.viostate_pub = self.create_publisher(VioState, f'{self.namespace_prefix}/fmu/in/vio_state', 10)
 
 		# TF broadcaster
 		self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
