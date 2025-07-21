@@ -29,6 +29,12 @@ colcon build --symlink-install
 ros2 run vision vio_bridge_px4
 ```
 
+To update the submodules according to the latest updates or if you face any issues with the submodules, run the following command
+```bash
+cd tl_vision2
+git submodule update --init --recursive
+```
+
 Dependencies:
 - setuptools 59.6.0
 - wheel 0.37.1
