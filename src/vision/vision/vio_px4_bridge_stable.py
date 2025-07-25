@@ -25,6 +25,7 @@ from scipy.spatial.transform import Rotation as R
 from geometry_msgs.msg import TransformStamped
 from nav_msgs.msg import Odometry
 from px4_msgs.msg import VehicleOdometry, VioState
+from vision.capnp_subscriber import CapnpSubscriber
 
 current_path = str(pathlib.Path(__file__).parent.resolve())
 capnp.add_import_hook([current_path + '/../capnp'])
@@ -33,72 +34,87 @@ import odometry3d_capnp as eCALOdometry3d
 sensorType = None
 sensorDirection = None
 
-class ByteSubscriber(MessageSubscriber):
-	"""Specialized publisher subscribes to raw bytes
-	"""
-	def __init__(self, name):
-		topic_type = "base:byte"
-		super(ByteSubscriber, self).__init__(name, topic_type)
-		self.callback = None
+# class ByteSubscriber(MessageSubscriber):
+# 	"""Specialized publisher subscribes to raw bytes
+# 	"""
+# 	def __init__(self, name):
+# 		topic_type = "base:byte"
+# 		super(ByteSubscriber, self).__init__(name, topic_type)
+# 		self.callback = None
 
-	def receive(self, timeout=0):
-		""" receive subscriber content with timeout
+# 	def receive(self, timeout=0):
+# 		""" receive subscriber content with timeout
 
-		:param timeout: receive timeout in ms
+# 		:param timeout: receive timeout in ms
 
-		"""
-		ret, msg, time = self.c_subscriber.receive(timeout)
-		return ret, msg, time
+# 		"""
+# 		ret, msg, time = self.c_subscriber.receive(timeout)
+# 		return ret, msg, time
 
-	def set_callback(self, callback):
-		""" set callback function for incoming messages
+# 	def set_callback(self, callback):
+# 		""" set callback function for incoming messages
 
-		:param callback: python callback function (f(topic_name, msg, time))
+# 		:param callback: python callback function (f(topic_name, msg, time))
 
-		"""
-		self.callback = callback
-		self.c_subscriber.set_callback(self._on_receive)
+# 		"""
+# 		self.callback = callback
+# 		self.c_subscriber.set_callback(self._on_receive)
 
-	def rem_callback(self, callback):
-		""" remove callback function for incoming messages
+# 	def rem_callback(self, callback):
+# 		""" remove callback function for incoming messages
 
-		:param callback: python callback function (f(topic_name, msg, time))
+# 		:param callback: python callback function (f(topic_name, msg, time))
 
-		"""
-		self.c_subscriber.rem_callback(self._on_receive)
-		self.callback = None
+# 		"""
+# 		self.c_subscriber.rem_callback(self._on_receive)
+# 		self.callback = None
 
-	def _on_receive(self, topic_name, msg, time):
-		self.callback(topic_name, msg, time)
+# 	def _on_receive(self, topic_name, msg, time):
+# 		self.callback(topic_name, msg, time)
 
 class OdometryPublisher(Node):
 
-	def __init__(self, sensorOrientation, sensorType, sensorDirection):
+	def __init__(self):
 
 		super().__init__('vio_bridge')
-		self.sensorOrientation = sensorOrientation
-		self.sensorType = sensorType
-		self.sensorDirection = sensorDirection
 
-        # Declare and retrieve the namespace parameter
-		self.declare_parameter('namespace', '')  # Default to empty namespace
+        # Declare and retrieve parameters
+		self.declare_parameter("namespace", '')  # Default to empty namespace
+		self.declare_parameter("sensor_type", 1)  # Default to VK180Pro
+		self.declare_parameter("sensor_direction", 1)  # Default to forward facing
+		self.declare_parameter("sensor_orientation", [0.0, -10.0, 0.0])
+	
+
+		self.sensorType = self.get_parameter('sensor_type').value
+		self.sensorDirection = self.get_parameter('sensor_direction').value
+		self.sensorOrientation = np.array(self.get_parameter('sensor_orientation').value)
 		self.namespace = self.get_parameter('namespace').value
 		self.namespace_prefix = f'/{self.namespace}' if self.namespace else ''
+
+		if self.sensorType not in [1, 2]:
+			self.get_logger().error("Invalid sensor type! Defaulting to VK180Pro.")
+			self.sensorType = 1
+		if self.sensorDirection not in [1, 2]:
+			self.get_logger().error("Invalid sensor direction! Defaulting to forward facing.")
+			self.sensorDirection = 1
+		if len(self.sensorOrientation) != 3:
+			self.get_logger().error("Invalid sensor orientation! Defaulting to [0.0, -10.0, 0.0].")
+			self.sensorOrientation = np.array([0.0, -10.0, 0.0])
         
-                # QoS profiles
-		# qos_profile_pub = QoSProfile(
-        #     reliability=QoSReliabilityPolicy.BEST_EFFORT,
-        #     durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
-        #     history=QoSHistoryPolicy.KEEP_LAST,
-        #     depth=0
-        # )
+        # QoS profiles
+		qos_profile_pub = QoSProfile(
+            reliability=QoSReliabilityPolicy.BEST_EFFORT,
+            durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
+            history=QoSHistoryPolicy.KEEP_LAST,
+            depth=0
+        )
 		
-		# qos_profile_sub = QoSProfile(
-        #     reliability=QoSReliabilityPolicy.BEST_EFFORT,
-        #     durability=QoSDurabilityPolicy.VOLATILE,
-        #     history=QoSHistoryPolicy.KEEP_LAST,
-        #     depth=0
-        # )
+		qos_profile_sub = QoSProfile(
+            reliability=QoSReliabilityPolicy.BEST_EFFORT,
+            durability=QoSDurabilityPolicy.VOLATILE,
+            history=QoSHistoryPolicy.KEEP_LAST,
+            depth=0
+        )
 
 		# Publishers
 		self.vio_odom_pub = self.create_publisher(VehicleOdometry, f'{self.namespace_prefix}/fmu/in/vehicle_visual_odometry', 10)
@@ -240,7 +256,7 @@ class OdometryPublisher(Node):
 							   orientation.y, orientation.z, orientation.w])
 			l_velocity_ned = np.array([l_velocity.x, l_velocity.y, l_velocity.z])
 
-			if self.sensorType == 1 and self.sensorDirection ==1: #VK180Pro vision module mounted forward facing
+			if (self.sensorType == 1 and self.sensorDirection ==1) or (self.sensorType == 2 and self.sensorDirection == 2): #VK180Pro vision module mounted forward facing & VK180 vision module mounted backward facing
 
 				position_ned[0] = -(position_ned[0])
 				position_ned[1] = -(position_ned[1])
@@ -255,30 +271,11 @@ class OdometryPublisher(Node):
 				l_velocity_ned[1] = -(l_velocity_ned[1])
 				l_velocity_ned[2] = l_velocity_ned[2]
 
-			elif self.sensorType == 1 and self.sensorDirection ==2: #VK180Pro vision module mounted backward facing
+			elif (self.sensorType == 1 and self.sensorDirection ==2) or (self.sensorType == 2 and self.sensorDirection == 1): #VK180Pro vision module mounted backward facing & VK180 vision module mounted forward facing 
 
 				position_ned = position_ned
 				orientation_ned = orientation_ned
 				l_velocity_ned = l_velocity_ned
-
-			elif self.sensorType == 2 and self.sensorDirection == 1: #VK180 vision module mounted forward facing 
-				position_ned = position_ned
-				orientation_ned = orientation_ned
-				l_velocity_ned = l_velocity_ned
-
-			elif self.sensorType == 2 and self.sensorDirection == 2: #VK180 vision module mounted backward facing
-				position_ned[0] = -(position_ned[0])
-				position_ned[1] = -(position_ned[1])
-				position_ned[2] = position_ned[2]
-
-				orientation_ned[0] = -(orientation_ned[0]) #q_x
-				orientation_ned[1] = -(orientation_ned[1]) #q_y
-				orientation_ned[2] = (orientation_ned[2]) #q_z
-				orientation_ned[3] = orientation_ned[3] #q_w
-
-				l_velocity_ned[0] = -(l_velocity_ned[0])
-				l_velocity_ned[1] = -(l_velocity_ned[1])
-				l_velocity_ned[2] = l_velocity_ned[2]
 
 			# n_pos_ned, n_q_ned, n_l_vel_ned = self.normalizeToBodyFrame(position_ned,
 			# 												   orientation_ned, l_velocity_ned)
@@ -309,9 +306,13 @@ class OdometryPublisher(Node):
 
 def main():
 
+	rclpy.init()
+	odometryPublisher = OdometryPublisher()
+
 	print(f"eCAL {ecal_core.getversion()} ({ecal_core.getdate()})\n")
 	ecal_core.initialize(sys.argv, "vio_px4_bridge")
-	ecal_core.set_process_state(1, 1, "I feel good")
+	ecal_core.set_process_state(1, 1, "I feel good")	
+		
 
 	# parameter to select the type/make of the vision module, heading direction of 
 	# the vision module, and Orientation of the vision module with respect to the 
@@ -321,7 +322,7 @@ def main():
 
 	# while True:
 	# 	try:
-	# 		sensorType = int(input("Select the external vision source type:\n 1. VK180Pro \n 2. VK180\n\n"))
+	# 		# sensorType = int(input("Select the external vision source type:\n 1. VK180Pro \n 2. VK180\n\n"))
 	# 		if sensorType == 1:
 	# 			# print("\nSelected external vision source is VK180Pro")
 	# 			visionModule = "VK180Pro"
@@ -373,13 +374,16 @@ def main():
 
 	# TODO: Output to screen - consolidated sensor information - Type, Orientation & Direction
 	print(f"\neCAL-ROS bridge subscribe topic: {ecal_topic}")
-	rclpy.init()
-	odometry_Publisher = OdometryPublisher(sensorOrientation, sensorType, sensorDirection)
-	sub = ByteSubscriber(ecal_topic)
-	sub.set_callback(odometry_Publisher.callback)
-	rclpy.spin(odometry_Publisher)
+	# rclpy.init()
+	# odometryPublisher = OdometryPublisher(sensorOrientation, sensorType, sensorDirection)
+
+
+	sub = CapnpSubscriber(ecal_topic)
+	sub.set_callback(odometryPublisher.callback)
+	rclpy.spin(odometryPublisher)
 
 	ecal_core.finalize()
+	rclpy.shutdown
 
 if __name__ == "__main__":
 	main()
