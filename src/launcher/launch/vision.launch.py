@@ -24,7 +24,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             'sensor_type',
-            default_value='1',
+            default_value='2',
             description='Type of the vilota sensor, VK180Pro/VK180'
         ),
         DeclareLaunchArgument(
@@ -34,7 +34,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             'sensor_orientation',
-            default_value=[0.0, -10.0, 0.0],
+            default_value='[0.0, -10.0, 0.0]',
             description='Orientation of the sensor in yaw, pitch, roll with respect to the drone FRD frame'
         ),
         # DeclareLaunchArgument(
