@@ -170,10 +170,6 @@ class OdometryPublisher(Node):
 
 	def odometryPublisher(self, positionFinalNED, orientationFinalNED, linearVelocityFinalNED):
 
-		# ned_odom_position = n_pos_ned
-		# ned_odom_q = nn_q_ned
-		# ned_odom_l_velocity = n_l_vel_ned
-
 		visualOdometry = VehicleOdometry()
 
 		visualOdometry.timestamp = int(self.get_clock().now().nanoseconds/1000)
@@ -183,7 +179,7 @@ class OdometryPublisher(Node):
 		visualOdometry.q = orientationFinalNED.astype(np.float32) # w, x, y, z order
 		visualOdometry.velocity_frame = 1
 		visualOdometry.velocity = linearVelocityFinalNED.astype(np.float32)
-		visualOdometry.angular_velocity[:] = np.nan #ned_odom_a_velocity
+		visualOdometry.angular_velocity[:] = np.nan 
 		# visualOdometry.position_variance = np.nan
 		# visualOdometry.orientation_variance = np.nan
 		# visualOdometry.velocity_variance = np.nan
@@ -201,23 +197,21 @@ class OdometryPublisher(Node):
 			orientation = odometryMsg.pose.orientation
 			linearVelocity = odometryMsg.twist.linear
 
-
-			# position_nwu = np.array([position.x, position.y, position.z])
+			# positionNWU = np.array([position.x, position.y, position.z])
 			# # convert orientation data from VIO to x,y,z,w order for scipy processing
-			# orientation_nwu = np.array([orientation.x,
+			# orientationNWU = np.array([orientation.x,
 			# 				   orientation.y, orientation.z, orientation.w])
-			# l_velocity_nwu = np.array([l_velocity.x, l_velocity.y, l_velocity.z])
+			# linearVelocityNWU = np.array([linearVelocity.x, linearVelocity.y, linearVelocity.z])
 
-			# position_ned, orientation_ned, l_velocity_ned = self.nwutonedTransform(position_nwu,
-			# 															  orientation_nwu, l_velocity_nwu)
+			# positionNED, orientationNED, linearVelocityNED = self.nwutonedTransform(positionNWU, orientationNWU, linearVelocityNWU)
 			
 			positionNED = np.array([position.x, position.y, position.z])
 			# convert orientation data from VIO to x,y,z,w order for scipy processing
-			orientationNED = np.array([orientation.x,
-							   orientation.y, orientation.z, orientation.w])
+			orientationNED = np.array([orientation.x, orientation.y, orientation.z, orientation.w])
 			linearVelocityNED = np.array([linearVelocity.x, linearVelocity.y, linearVelocity.z])
 
-			if (self.sensorType == 1 and self.sensorDirection == 1) or (self.sensorType == 2 and self.sensorDirection == 2): #VK180Pro vision module mounted forward facing & VK180 vision module mounted backward facing
+			#VK180Pro vision module mounted forward facing & VK180 vision module mounted backward facing
+			if (self.sensorType == 1 and self.sensorDirection == 1) or (self.sensorType == 2 and self.sensorDirection == 2): 
 
 				#Convert Vilota sensor axis to drone axis with respect to mounting direction
 				positionNED[0] = -(positionNED[0])
@@ -233,20 +227,17 @@ class OdometryPublisher(Node):
 				linearVelocityNED[1] = -(linearVelocityNED[1])
 				linearVelocityNED[2] = linearVelocityNED[2]
 
-			elif (self.sensorType == 1 and self.sensorDirection == 2) or (self.sensorType == 2 and self.sensorDirection == 1): #VK180Pro vision module mounted backward facing & VK180 vision module mounted forward facing 
+			#VK180Pro vision module mounted backward facing & VK180 vision module mounted forward facing 
+			elif (self.sensorType == 1 and self.sensorDirection == 2) or (self.sensorType == 2 and self.sensorDirection == 1):
 
 				positionNED = positionNED
 				orientationNED = orientationNED
 				linearVelocityNED = linearVelocityNED
 
-			# n_pos_ned, n_q_ned, n_l_vel_ned = self.normalizeToBodyFrame(position_ned,
-			# 												   orientation_ned, l_velocity_ned)
-
 			positionFinalNED = positionNED
 			orientationFinalNED = self.rotateToBodyFrame(orientationNED)
 			linearVelocityFinalNED = linearVelocityNED
 
-			
 			vioState = VioState()
 			vioState.timestamp = int(self.get_clock().now().nanoseconds/1000)
 			vioState.vision_failure = odometryMsg.metricVisionFailureLikelihood
