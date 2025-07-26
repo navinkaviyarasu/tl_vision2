@@ -1,12 +1,5 @@
 #!/usr/bin/env python3
 
-# Future Scope:
-# Utilize ros parameters for sensor Type, Direction and Orientation
-# Establish tf
-# Using namespace for running the script for both the sensor Type
-# NOTE: But both can't publish data to /fmu/in/vehicle_visual_odometry topic
-# NOTE: Flight controller will handle as a single sensor data only & may lead to issues
-
 import sys
 import pathlib
 
@@ -17,7 +10,7 @@ import numpy as np
 import ecal.core.core as ecal_core
 
 from rclpy.node import Node
-from rclpy.qos import QoSProfile, QoSDurabilityPolicy, QoSHistoryPolicy, QoSReliabilityPolicy
+from rclpy.qos import qos_profile_sensor_data
 from ecal.core.subscriber import MessageSubscriber
 from scipy.spatial.transform import Rotation as R
 
@@ -59,26 +52,11 @@ class OdometryPublisher(Node):
 		if len(self.sensorOrientation) != 3:
 			self.get_logger().error("Invalid sensor orientation! Defaulting to [0.0, -10.0, 0.0].")
 			self.sensorOrientation = np.array([0.0, -10.0, 0.0])
-        
-        # QoS profiles
-		qos_profile_pub = QoSProfile(
-            reliability=QoSReliabilityPolicy.BEST_EFFORT,
-            durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
-            history=QoSHistoryPolicy.KEEP_LAST,
-            depth=0
-        )
-		
-		qos_profile_sub = QoSProfile(
-            reliability=QoSReliabilityPolicy.BEST_EFFORT,
-            durability=QoSDurabilityPolicy.VOLATILE,
-            history=QoSHistoryPolicy.KEEP_LAST,
-            depth=0
-        )
 
 		# Publishers
-		self.visualOdometryPUB = self.create_publisher(VehicleOdometry, f'{self.namespace_prefix}/fmu/in/vehicle_visual_odometry', 10)
-		self.mocapOdometryPUB = self.create_publisher(VehicleOdometry, f'{self.namespace_prefix}/fmu/in/vehicle_mocap_odometry', 10)
-		self.vioStatePUB = self.create_publisher(VioState, f'{self.namespace_prefix}/fmu/in/vio_state', 10)
+		self.visualOdometryPUB = self.create_publisher(VehicleOdometry, f'{self.namespace_prefix}/fmu/in/vehicle_visual_odometry', qos_profile_sensor_data)
+		self.mocapOdometryPUB = self.create_publisher(VehicleOdometry, f'{self.namespace_prefix}/fmu/in/vehicle_mocap_odometry', qos_profile_sensor_data)
+		self.vioStatePUB = self.create_publisher(VioState, f'{self.namespace_prefix}/fmu/in/vio_state', qos_profile_sensor_data)
 
 		# TF broadcaster
 		self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
@@ -95,13 +73,10 @@ class OdometryPublisher(Node):
 		# return norm_pos_ned,norm_orient_ned, norm_lvel_ned
 
 	def rotateToBodyFrame(self, orientationNED):
-		
+		# Data of how sensor is mounted onto the drone frame
 		yaw, pitch, roll = self.sensorOrientation
+
 		mountedOrientationOBJ = R.from_euler('zyx', [yaw,pitch,roll], degrees=True).as_matrix()
-
-		# norm_pos_ned = np.dot(r_total, position_ned)
-
-		#NOTE: Is it working as expected?
 		sensorOrientationOBJ = R.from_quat(orientationNED)
 		rotatedOrientationNED = sensorOrientationOBJ*R.from_matrix(mountedOrientationOBJ)
 		rotatedOrientationNED = rotatedOrientationNED.as_quat() #Quaternion in x,y,z,w order
@@ -251,7 +226,7 @@ class OdometryPublisher(Node):
 			# self.tfPublisher(position_nwu, orientation_nwu)
 
 def main(args=None):
-
+	print("started")
 	rclpy.init(args=args)
 	odometryPublisher = OdometryPublisher()
 	sensorType = odometryPublisher.get_parameter('sensor_type').value
@@ -275,7 +250,7 @@ def main(args=None):
 		
 		break
 	
-	print(f"\neCAL-ROS bridge subscribe topic: {eCALtopic}\n")
+	odometryPublisher.get_logger().info(f"eCAL-ROS bridge subscribe topic: {eCALtopic}")
 	eCALsubscriber = CapnpSubscriber("Odometry3d", eCALtopic)
 	eCALsubscriber.set_callback(odometryPublisher.callback)
 	try:
@@ -284,8 +259,8 @@ def main(args=None):
 		print("[INFO]:KeyboardInterrupt: Shutting down node....")
 	finally:
 		odometryPublisher.destroy_node()
-		rclpy.shutdown
-	ecal_core.finalize()
+		rclpy.shutdown()
+		ecal_core.finalize()
 
 if __name__ == "__main__":
 	main()

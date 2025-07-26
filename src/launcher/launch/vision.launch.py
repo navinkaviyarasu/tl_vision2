@@ -50,15 +50,16 @@ def generate_launch_description():
                 {'namespace': namespace},
                 {'sensor_type': sensor_type},
                 {'sensor_direction': sensor_direction},
-                {'sensor_orientation': sensor_orientation}
-            ]
+                {'sensor_orientation': sensor_orientation},
+            ],
+            output='screen'
         ),
         Node(
             package='visualizer',
             executable='visualizer',
             name='visualizer',
             parameters=[
-                {'namespace': namespace}
+                {'namespace': namespace},
             ]
         ),
         Node(
@@ -69,8 +70,8 @@ def generate_launch_description():
                 {'radius': 10.0},
                 {'altitude': 5.0},
                 {'omega': 0.5},
-                {'namespace': namespace}
-            ]
+                {'namespace': namespace},
+            ],
         ),
         # OpaqueFunction(function=launch_setup),
     ])

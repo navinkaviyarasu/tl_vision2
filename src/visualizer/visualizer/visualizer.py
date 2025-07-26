@@ -191,17 +191,16 @@ class PX4Visualizer(Node):
         velocity_msg = self.create_arrow_marker(1, self.vehicle_local_position, self.vehicle_local_velocity)
         self.vehicle_vel_pub.publish(velocity_msg)
 
-
 def main(args=None):
     rclpy.init(args=args)
-
-    px4_visualizer = PX4Visualizer()
-
-    rclpy.spin(px4_visualizer)
-
-    px4_visualizer.destroy_node()
-    rclpy.shutdown()
-
+    px4Visualizer = PX4Visualizer()
+    try:
+        rclpy.spin(px4Visualizer)
+    except KeyboardInterrupt:
+        print("[INFO]:KeyboardInterrupt: Shutting down node....")
+    finally:
+        px4Visualizer.destroy_node()
+        rclpy.shutdown()
 
 if __name__ == "__main__":
     main()

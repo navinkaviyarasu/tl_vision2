@@ -107,13 +107,14 @@ class OffboardControl(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-
     offboard_control = OffboardControl()
-
-    rclpy.spin(offboard_control)
-
-    offboard_control.destroy_node()
-    rclpy.shutdown()
+    try:
+        rclpy.spin(offboard_control)
+    except KeyboardInterrupt:
+        print("[INFO]:KeyboardInterrupt: Shutting down node....")
+    finally:
+        offboard_control.destroy_node()
+        rclpy.shutdown()
 
 
 if __name__ == '__main__':
