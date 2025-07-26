@@ -226,7 +226,7 @@ class OdometryPublisher(Node):
 			# self.tfPublisher(position_nwu, orientation_nwu)
 
 def main(args=None):
-	print("started")
+
 	rclpy.init(args=args)
 	odometryPublisher = OdometryPublisher()
 	sensorType = odometryPublisher.get_parameter('sensor_type').value
