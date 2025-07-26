@@ -61,6 +61,15 @@ class OdometryPublisher(Node):
 		# TF broadcaster
 		self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
 
+		self.positionLastNED = None
+		self.orientationLastNED = None
+		self.linearVelocityLastNED = None
+		self.timeLast = None
+
+		# self.dataReceivedTime = None
+
+		self.timer = self.create_timer(1.0/40.0, self.odometryPublisher)
+
 	# def normalizeToBodyFrame(self, position_ned, orientation_ned, l_velocity_ned):
 		# yaw, pitch, roll = self.sensorOrientation
 		# r_total = R.from_euler('zyx', [yaw,pitch,roll], degrees=True).as_matrix()
@@ -143,11 +152,22 @@ class OdometryPublisher(Node):
 		
 		self.vioStatePUB.publish(vioState)
 
-	def odometryPublisher(self, positionFinalNED, orientationFinalNED, linearVelocityFinalNED):
+	# def odometryPublisher(self, positionFinalNED, orientationFinalNED, linearVelocityFinalNED):
+	def odometryPublisher(self):
+
+		if self.positionLastNED is None:
+			return
+		
+		timeNow = self.get_clock().now()
+		timeDelta = (timeNow - self.timeLast).nanoseconds*1e-9 #timeDelta in seconds
+
+		positionFinalNED = self.positionLastNED + self.linearVelocityLastNED * timeDelta
+		orientationFinalNED = self.orientationLastNED
+		linearVelocityFinalNED = self.linearVelocityLastNED
 
 		visualOdometry = VehicleOdometry()
 
-		visualOdometry.timestamp = int(self.get_clock().now().nanoseconds/1000)
+		visualOdometry.timestamp = int(self.get_clock().now().nanoseconds/1000) #timestamp in microseconds
 		# visualOdometry.timestamp_sample = # Time at which the sensor data has been captured. Vilota gives stamp at monotonic time
 		visualOdometry.pose_frame = 1
 		visualOdometry.position = positionFinalNED.astype(np.float32)
@@ -160,9 +180,10 @@ class OdometryPublisher(Node):
 		# visualOdometry.velocity_variance = np.nan
 		# visualOdometry.reset_counter = 
 		# visualOdometry.quality = 
+		# print("Time@sensor data during publishing:", (self.get_clock().now()-self.dataReceivedTime).nanoseconds*1e-9, visualOdometry.position)
 
 		self.visualOdometryPUB.publish(visualOdometry)
-		self.get_logger().info("Vision bridge online...")
+		# self.get_logger().info("Vision bridge online...")
 
 	def callback(self, topic_name, msg, time):
 
@@ -171,6 +192,9 @@ class OdometryPublisher(Node):
 			position = odometryMsg.pose.position
 			orientation = odometryMsg.pose.orientation
 			linearVelocity = odometryMsg.twist.linear
+
+			# self.dataReceivedTime=self.get_clock().now()
+			# print("Time@sensor data received:", self.dataReceivedTime)
 
 			# positionNWU = np.array([position.x, position.y, position.z])
 			# # convert orientation data from VIO to x,y,z,w order for scipy processing
@@ -209,19 +233,25 @@ class OdometryPublisher(Node):
 				orientationNED = orientationNED
 				linearVelocityNED = linearVelocityNED
 
-			positionFinalNED = positionNED
-			orientationFinalNED = self.rotateToBodyFrame(orientationNED)
-			linearVelocityFinalNED = linearVelocityNED
+			# positionFinalNED = positionNED
+			# orientationFinalNED = self.rotateToBodyFrame(orientationNED)
+			# linearVelocityFinalNED = linearVelocityNED
+		
+			self.positionLastNED = positionNED
+			self.orientationLastNED = self.rotateToBodyFrame(orientationNED)
+			self.linearVelocityLastNED = linearVelocityNED
+			self.timeLast = self.get_clock().now()
+			# print("Time@sensor data after calc:", (self.get_clock().now()-self.dataReceivedTime).nanoseconds*1e-9, self.positionLastNED)
 
 			vioState = VioState()
-			vioState.timestamp = int(self.get_clock().now().nanoseconds/1000)
+			vioState.timestamp = int(self.get_clock().now().nanoseconds/1000) # Time in microseconds 
 			vioState.vision_failure = odometryMsg.metricVisionFailureLikelihood
 			vioState.inertial_failure = odometryMsg.metricInertialFailureLikelihood
 			vioState.failure_drift = odometryMsg.estimatedFailureModeDrift
 			vioState.vio_failure = odometryMsg.metricFailureVio
 			vioState.reset_counter = odometryMsg.resetCounter
 
-			self.odometryPublisher(positionFinalNED, orientationFinalNED, linearVelocityFinalNED)
+			# self.odometryPublisher(positionFinalNED, orientationFinalNED, linearVelocityFinalNED)
 			self.viostatePublisher(vioState)
 			# self.tfPublisher(position_nwu, orientation_nwu)
 
