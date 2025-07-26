@@ -183,7 +183,7 @@ class OdometryPublisher(Node):
 		# print("Time@sensor data during publishing:", (self.get_clock().now()-self.dataReceivedTime).nanoseconds*1e-9, visualOdometry.position)
 
 		self.visualOdometryPUB.publish(visualOdometry)
-		# self.get_logger().info("Vision bridge online...")
+		self.get_logger().info("Vision bridge online...")
 
 	def callback(self, topic_name, msg, time):
 
@@ -251,7 +251,6 @@ class OdometryPublisher(Node):
 			vioState.vio_failure = odometryMsg.metricFailureVio
 			vioState.reset_counter = odometryMsg.resetCounter
 
-			# self.odometryPublisher(positionFinalNED, orientationFinalNED, linearVelocityFinalNED)
 			self.viostatePublisher(vioState)
 			# self.tfPublisher(position_nwu, orientation_nwu)
 
