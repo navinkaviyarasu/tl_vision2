@@ -46,6 +46,7 @@ def generate_launch_description():
             package='vision',
             executable='vio_bridge_px4',
             name='vio_bridge',
+            namespace=namespace,
             parameters=[
                 {'namespace': namespace},
                 {'sensor_type': sensor_type},
@@ -58,6 +59,7 @@ def generate_launch_description():
             package='visualizer',
             executable='visualizer',
             name='visualizer',
+            namespace=namespace,
             parameters=[
                 {'namespace': namespace},
             ]
@@ -66,6 +68,7 @@ def generate_launch_description():
             package='offboard_controller',
             executable='oc_posctl',
             name='control',
+            namespace=namespace,
             parameters= [
                 {'radius': 10.0},
                 {'altitude': 5.0},
