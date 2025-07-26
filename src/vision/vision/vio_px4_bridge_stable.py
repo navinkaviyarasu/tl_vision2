@@ -64,6 +64,7 @@ class OdometryPublisher(Node):
 		self.positionLastNED = None
 		self.orientationLastNED = None
 		self.linearVelocityLastNED = None
+		self.vioQuality = None
 		self.timeLast = None
 
 		# self.dataReceivedTime = None
@@ -179,11 +180,43 @@ class OdometryPublisher(Node):
 		# visualOdometry.orientation_variance = np.nan
 		# visualOdometry.velocity_variance = np.nan
 		# visualOdometry.reset_counter = 
+		# visualOdometry.quality = (1-self.vioQuality)*100
+		# print("Time@sensor data during publishing:", (self.get_clock().now()-self.dataReceivedTime).nanoseconds*1e-9, visualOdometry.position)
+
+		if timeDelta < 1:
+			self.visualOdometryPUB.publish(visualOdometry)
+		self.get_logger().info("Vision bridge online...")
+
+	def odometrysensorPublisher(self, positionFinalNED, orientationFinalNED, linearVelocityFinalNED):
+
+		# if self.positionLastNED is None:
+		# 	return
+		
+		# timeNow = self.get_clock().now()
+		# timeDelta = (timeNow - self.timeLast).nanoseconds*1e-9 #timeDelta in seconds
+
+		# positionFinalNED = self.positionLastNED + self.linearVelocityLastNED * timeDelta
+		# orientationFinalNED = self.orientationLastNED
+		# linearVelocityFinalNED = self.linearVelocityLastNED
+
+		visualOdometry = VehicleOdometry()
+
+		visualOdometry.timestamp = int(self.get_clock().now().nanoseconds/1000) #timestamp in microseconds
+		# visualOdometry.timestamp_sample = # Time at which the sensor data has been captured. Vilota gives stamp at monotonic time
+		visualOdometry.pose_frame = 1
+		visualOdometry.position = positionFinalNED.astype(np.float32)
+		visualOdometry.q = orientationFinalNED.astype(np.float32) # w, x, y, z order
+		visualOdometry.velocity_frame = 1
+		visualOdometry.velocity = linearVelocityFinalNED.astype(np.float32)
+		visualOdometry.angular_velocity[:] = np.nan 
+		# visualOdometry.position_variance = np.nan
+		# visualOdometry.orientation_variance = np.nan
+		# visualOdometry.velocity_variance = np.nan
+		# visualOdometry.reset_counter = 
 		# visualOdometry.quality = 
 		# print("Time@sensor data during publishing:", (self.get_clock().now()-self.dataReceivedTime).nanoseconds*1e-9, visualOdometry.position)
 
-		self.visualOdometryPUB.publish(visualOdometry)
-		self.get_logger().info("Vision bridge online...")
+		self.mocapOdometryPUB.publish(visualOdometry)
 
 	def callback(self, topic_name, msg, time):
 
@@ -192,6 +225,7 @@ class OdometryPublisher(Node):
 			position = odometryMsg.pose.position
 			orientation = odometryMsg.pose.orientation
 			linearVelocity = odometryMsg.twist.linear
+			vioQuality = odometryMsg.metricFailureVio
 
 			# self.dataReceivedTime=self.get_clock().now()
 			# print("Time@sensor data received:", self.dataReceivedTime)
@@ -240,8 +274,11 @@ class OdometryPublisher(Node):
 			self.positionLastNED = positionNED
 			self.orientationLastNED = self.rotateToBodyFrame(orientationNED)
 			self.linearVelocityLastNED = linearVelocityNED
+			self.vioQuality = vioQuality
 			self.timeLast = self.get_clock().now()
 			# print("Time@sensor data after calc:", (self.get_clock().now()-self.dataReceivedTime).nanoseconds*1e-9, self.positionLastNED)
+			self.odometrysensorPublisher(self.positionLastNED, self.orientationLastNED, self.linearVelocityLastNED)
+
 
 			vioState = VioState()
 			vioState.timestamp = int(self.get_clock().now().nanoseconds/1000) # Time in microseconds 
