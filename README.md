@@ -11,12 +11,10 @@ git clone --recurse-submodules https://github.com/navinkaviyarasu/tl_vision2.git
 ```
 
 2. Build the workspace
-- Before building the workspace, install the respective vrpn-mocap package
+- Before building the workspace, install the package dependencies
 ```bash
-sudo apt install ros-<ros-distro>-vrpn-mocap
-
-#Example
-sudo apt install ros-humble-vrpn-mocap
+cd tl_vision2
+rosdep install --from-paths src --ignore-src -y
 ```
 
 ```bash
