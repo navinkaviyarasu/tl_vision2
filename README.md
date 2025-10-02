@@ -6,7 +6,7 @@ A ROS2 package to integrate the Vilota vision modules onto PX4
 
 1. Clone the repo using the following command
 
-- To clone the main development branch, use
+- To clone the development branch(master), use
 
 ```bash
 git clone --recurse-submodules https://github.com/navinkaviyarasu/tl_vision2.git
