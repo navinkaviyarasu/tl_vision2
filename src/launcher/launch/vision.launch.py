@@ -24,7 +24,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             'sensor_type',
-            default_value='2',
+            default_value='1',
             description='Type of the vilota sensor, VK180Pro/VK180'
         ),
         DeclareLaunchArgument(
@@ -48,7 +48,6 @@ def generate_launch_description():
             name='vio_bridge',
             namespace=namespace,
             parameters=[
-                {'namespace': namespace},
                 {'sensor_type': sensor_type},
                 {'sensor_direction': sensor_direction},
                 {'sensor_orientation': sensor_orientation},
@@ -60,9 +59,6 @@ def generate_launch_description():
             executable='visualizer',
             name='visualizer',
             namespace=namespace,
-            parameters=[
-                {'namespace': namespace},
-            ]
         ),
         Node(
             package='offboard_controller',
@@ -73,7 +69,6 @@ def generate_launch_description():
                 {'radius': 10.0},
                 {'altitude': 5.0},
                 {'omega': 0.5},
-                {'namespace': namespace},
             ],
         ),
         # OpaqueFunction(function=launch_setup),

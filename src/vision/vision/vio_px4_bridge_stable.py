@@ -32,7 +32,6 @@ class OdometryPublisher(Node):
 		super().__init__('vio_bridge')
 
         # Declare and retrieve parameters
-		self.declare_parameter("namespace", '')  # Default to empty namespace
 		self.declare_parameter("sensor_type", 1)  # Default to VK180Pro
 		self.declare_parameter("sensor_direction", 1)  # Default to forward facing
 		self.declare_parameter("sensor_orientation", [0.0, -10.0, 0.0])
@@ -41,8 +40,6 @@ class OdometryPublisher(Node):
 		self.sensorType = self.get_parameter('sensor_type').value
 		self.sensorDirection = self.get_parameter('sensor_direction').value
 		self.sensorOrientation = np.array(self.get_parameter('sensor_orientation').value)
-		self.namespace = self.get_parameter('namespace').value
-		self.namespace_prefix = f'/{self.namespace}' if self.namespace else ''
 
 		if self.sensorType not in [1, 2]:
 			self.sensorType = 1
@@ -54,9 +51,9 @@ class OdometryPublisher(Node):
 			self.sensorOrientation = np.array([0.0, -10.0, 0.0])
 
 		# Publishers
-		self.visualOdometryPUB = self.create_publisher(VehicleOdometry, f'{self.namespace_prefix}/fmu/in/vehicle_visual_odometry', qos_profile_sensor_data)
-		self.mocapOdometryPUB = self.create_publisher(VehicleOdometry, f'{self.namespace_prefix}/fmu/in/vehicle_mocap_odometry', qos_profile_sensor_data)
-		self.vioStatePUB = self.create_publisher(VioState, f'{self.namespace_prefix}/fmu/in/vio_state', qos_profile_sensor_data)
+		self.visualOdometryPUB = self.create_publisher(VehicleOdometry, 'fmu/in/vehicle_visual_odometry', qos_profile_sensor_data)
+		self.mocapOdometryPUB = self.create_publisher(VehicleOdometry, 'fmu/in/vehicle_mocap_odometry', qos_profile_sensor_data)
+		self.vioStatePUB = self.create_publisher(VioState, 'fmu/in/vio_state', qos_profile_sensor_data)
 
 		# TF broadcaster
 		self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
