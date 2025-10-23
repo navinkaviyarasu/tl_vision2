@@ -11,6 +11,7 @@ import ecal.core.core as ecal_core
 
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
+from rcl_interfaces.msg import ParameterDescriptor
 from ecal.core.subscriber import MessageSubscriber
 from scipy.spatial.transform import Rotation as R
 
@@ -31,15 +32,19 @@ class OdometryPublisher(Node):
 
 		super().__init__('vio_bridge')
 
+		#Parameter descriptions
+		sensor_use_description = ParameterDescriptor(description='\nIntended use of the Vilota data:\n 1. EKF sensor fusion \n 2. Ground truth reference\n\n')
+
         # Declare and retrieve parameters
 		self.declare_parameter("sensor_type", 1)  # Default to VK180Pro
 		self.declare_parameter("sensor_direction", 1)  # Default to forward facing
 		self.declare_parameter("sensor_orientation", [0.0, -10.0, 0.0])
-	
+		self.declare_parameter("sensor_use", 1, sensor_use_description) #1-EKF Fusion, 2-vehicle_mocap_odometry topic for reference
 
 		self.sensorType = self.get_parameter('sensor_type').value
 		self.sensorDirection = self.get_parameter('sensor_direction').value
 		self.sensorOrientation = np.array(self.get_parameter('sensor_orientation').value)
+		self.sensorUse = self.get_parameter('sensor_use').value
 
 		if self.sensorType not in [1, 2]:
 			self.sensorType = 1
@@ -65,8 +70,8 @@ class OdometryPublisher(Node):
 		self.timeLast = None
 
 		# self.dataReceivedTime = None
-
-		self.timer = self.create_timer(1.0/40.0, self.odometryPublisher)
+		if self.sensorUse == 1:
+			self.timer = self.create_timer(1.0/40.0, self.odometryPublisher)
 
 	# def normalizeToBodyFrame(self, position_ned, orientation_ned, l_velocity_ned):
 		# yaw, pitch, roll = self.sensorOrientation
@@ -184,7 +189,7 @@ class OdometryPublisher(Node):
 			self.visualOdometryPUB.publish(visualOdometry)
 		self.get_logger().info("Vision bridge online...")
 
-	def odometrysensorPublisher(self, positionFinalNED, orientationFinalNED, linearVelocityFinalNED):
+	def odometryMocapPublisher(self, positionFinalNED, orientationFinalNED, linearVelocityFinalNED):
 
 		# if self.positionLastNED is None:
 		# 	return
@@ -274,7 +279,7 @@ class OdometryPublisher(Node):
 			self.vioQuality = vioQuality
 			self.timeLast = self.get_clock().now()
 			# print("Time@sensor data after calc:", (self.get_clock().now()-self.dataReceivedTime).nanoseconds*1e-9, self.positionLastNED)
-			self.odometrysensorPublisher(self.positionLastNED, self.orientationLastNED, self.linearVelocityLastNED)
+			self.odometryMocapPublisher(self.positionLastNED, self.orientationLastNED, self.linearVelocityLastNED)
 
 
 			vioState = VioState()

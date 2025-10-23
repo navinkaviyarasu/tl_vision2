@@ -15,8 +15,16 @@ class ViconOdometry(Node):
 
         super().__init__('vicon_bridge')
 
-        mocap_use_description = ParameterDescriptor(description='\nIntended use of the mocap data:\n 1. EKF sensor fusion \n 2. Ground truth reference\n\n')
-        self.declare_parameter('mocap_use', 0, mocap_use_description) # 1.EKF Fusion 2.GroundTruth Reference
+        mocapUse_description = ParameterDescriptor(description='\nIntended use of the mocap data:\n 1. EKF sensor fusion \n 2. Ground truth reference\n\n')
+        viconObjectName_description = ParameterDescriptor(description='\nObject name as provided in the motion capture application\n\n')
+        
+        self.declare_parameter('mocap_use', 2, mocapUse_description) # 1.EKF Fusion 2.GroundTruth Reference #Default set to GroundTruth Reference
+        self.declare_parameter('vicon_object_name', 'Aira', viconObjectName_description)
+
+        self.viconObjectName = self.get_parameter('vicon_object_name').value
+
+        poseTopic = f'/vrpn_mocap/{self.viconObjectName}/pose'
+        twistTopic = f'/vrpn_mocap/{self.viconObjectName}/twist'
 
         self.pose_enu = None
         self.twist_enu = None
@@ -25,10 +33,10 @@ class ViconOdometry(Node):
             depth=10,
             reliability=QoSReliabilityPolicy.BEST_EFFORT
         )
-        self.mocap_gt_pub = self.create_publisher(VehicleOdometry, '/fmu/in/vehicle_mocap_odometry', 10)
-        self.mocap_odom_pub = self.create_publisher(VehicleOdometry, '/fmu/in/vehicle_visual_odometry', 10)
-        self.create_subscription(PoseStamped, '/vrpn_mocap/Akira/pose', self.pose_callback, qos_profile)
-        self.create_subscription(TwistStamped, '/vrpn_mocap/Akira/twist', self.twist_callback, qos_profile)
+        self.mocap_gt_pub = self.create_publisher(VehicleOdometry, 'fmu/in/vehicle_mocap_odometry', 10)
+        self.mocap_odom_pub = self.create_publisher(VehicleOdometry, 'fmu/in/vehicle_visual_odometry', 10)
+        self.create_subscription(PoseStamped, poseTopic, self.pose_callback, qos_profile)
+        self.create_subscription(TwistStamped, twistTopic, self.twist_callback, qos_profile)
         self.tf_broadcaster = TransformBroadcaster(self)
         self.timer = self.create_timer(1.0/50.0, self.mocap_pub) #Runs at 50Hz
 
@@ -101,7 +109,7 @@ class ViconOdometry(Node):
 
         tf_msg.header.stamp = self.get_clock().now().to_msg()
         tf_msg.header.frame_id = "odom"
-        tf_msg.child_frame_id = "Akira"
+        tf_msg.child_frame_id = self.viconObjectName
         tf_msg.transform.translation.x = position_enu[0]
         tf_msg.transform.translation.y = position_enu[1]
         tf_msg.transform.translation.z = position_enu[2]
