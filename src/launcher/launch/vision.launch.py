@@ -67,7 +67,7 @@ def generate_launch_description():
             namespace=namespace,
             parameters= [
                 {'radius': 10.0},
-                {'altitude': 5.0},
+                {'altitude': 1.0},
                 {'omega': 0.5},
             ],
         ),
