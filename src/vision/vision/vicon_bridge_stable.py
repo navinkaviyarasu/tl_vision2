@@ -7,7 +7,8 @@ from scipy.spatial.transform import Rotation as R
 from tf2_ros import TransformBroadcaster
 from px4_msgs.msg import VehicleOdometry
 from rcl_interfaces.msg import ParameterDescriptor
-from rclpy.qos import QoSProfile, QoSHistoryPolicy, QoSReliabilityPolicy
+from rclpy.qos import QoSProfile, QoSHistoryPolicy, QoSReliabilityPolicy 
+from rclpy.qos import qos_profile_sensor_data
 from geometry_msgs.msg import PoseStamped, TwistStamped, TransformStamped
 
 class ViconOdometry(Node):
@@ -33,8 +34,8 @@ class ViconOdometry(Node):
             depth=10,
             reliability=QoSReliabilityPolicy.BEST_EFFORT
         )
-        self.mocap_gt_pub = self.create_publisher(VehicleOdometry, 'fmu/in/vehicle_mocap_odometry', 10)
-        self.mocap_odom_pub = self.create_publisher(VehicleOdometry, 'fmu/in/vehicle_visual_odometry', 10)
+        self.mocap_gt_pub = self.create_publisher(VehicleOdometry, 'fmu/in/vehicle_mocap_odometry', qos_profile_sensor_data)
+        self.mocap_odom_pub = self.create_publisher(VehicleOdometry, 'fmu/in/vehicle_visual_odometry', qos_profile_sensor_data)
         self.create_subscription(PoseStamped, poseTopic, self.pose_callback, qos_profile)
         self.create_subscription(TwistStamped, twistTopic, self.twist_callback, qos_profile)
         self.tf_broadcaster = TransformBroadcaster(self)

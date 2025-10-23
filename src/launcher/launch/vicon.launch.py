@@ -30,7 +30,7 @@ def generate_launch_description():
         DeclareLaunchArgument('refresh_freq',default_value='1.0'),
         DeclareLaunchArgument('multi_sensor',default_value='false'),
         DeclareLaunchArgument('use_vrpn_timestamps',default_value='false'),
-        DeclareLaunchArgument('vicon_object_name', default='Aira'),
+        DeclareLaunchArgument('vicon_object_name', default_value='Aira'),
         DeclareLaunchArgument('mocap_use',default_value='2',description='Intended use of the mocap data: 1. EKF sensor fusion 2. Ground truth reference'),
 
         Node(
