@@ -63,9 +63,11 @@ class ViconOdometry(Node):
         #but remember drone facing EAST is taken as yaw=0 deg
 
         qx, qy, qz, qw = orientation_enu
-        q_vec_enu = np.array([qx, qy, qz])
-        q_vec_ned = np.dot(rot_enutoned, q_vec_enu)
-        orientation_ned = np.hstack([q_vec_ned, qw]) #Quaternion in x,y,z,w order
+        # q_vec_enu = np.array([qx, qy, qz])
+        # q_vec_ned = np.dot(rot_enutoned, q_vec_enu)
+        # orientation_ned = np.hstack([q_vec_ned, qw]) #Quaternion in x,y,z,w order
+
+        orientation_ned = np.array([qy, qx, -qz, qw])
 
         return position_ned, orientation_ned, velocity_ned
 
