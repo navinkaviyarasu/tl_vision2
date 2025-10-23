@@ -2,7 +2,7 @@
 
 A ROS2 package to integrate the Vilota vision modules onto PX4
 
-***NOTE:*** Development was carried out on Ubuntu 22.04 Focal and ROS2 Humble
+***NOTE:*** Development was carried out on Ubuntu 22.04 Jammy and ROS2 Humble
 
 1. Clone the repo using the following command
 
