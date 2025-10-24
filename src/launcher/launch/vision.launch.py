@@ -14,6 +14,7 @@ def generate_launch_description():
     sensor_type = LaunchConfiguration('sensor_type')
     sensor_direction=LaunchConfiguration('sensor_direction')
     sensor_orientation=LaunchConfiguration('sensor_orientation')
+    sensor_use=LaunchConfiguration('sensor_use')
     # vio_config=PathJoinSubstitution([FindPackageShare('vision'),'config',])
 
     return LaunchDescription([
@@ -37,6 +38,11 @@ def generate_launch_description():
             default_value='[0.0, -10.0, 0.0]',
             description='Orientation of the sensor in yaw, pitch, roll with respect to the drone FRD frame'
         ),
+        DeclareLaunchArgument(
+            'sensor_use',
+            default_value='1',
+            description='Intended use of the Vilota data:\n 1. EKF sensor fusion \n 2. Ground truth reference'
+        ),
         # DeclareLaunchArgument(
         #     'vio_config',
         #     default_value=[FindPakcageShare('vision'),'/config/f_vk180pro.yaml'],
@@ -51,6 +57,7 @@ def generate_launch_description():
                 {'sensor_type': sensor_type},
                 {'sensor_direction': sensor_direction},
                 {'sensor_orientation': sensor_orientation},
+                {'sensor_use': sensor_use}
             ],
             output='screen'
         ),
