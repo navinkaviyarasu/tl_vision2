@@ -47,41 +47,15 @@ class ViconOdometry(Node):
                                 [1, 0, 0],
                                 [0, 0, -1]])
 
-    
+        rot_flu2frd = R.from_euler('x',180, degrees=True)
+        
         position_ned = np.dot(rot_enutoned, position_enu)
         velocity_ned = np.dot(rot_enutoned, velocity_enu)
 
         rot_enu = R.from_quat(orientation_enu)
-        rot_flu2frd = R.from_euler('x',180, degrees=True)
         rot_ned = R.from_matrix(rot_enutoned) * rot_enu * rot_flu2frd
         orientation_ned = rot_ned.as_quat()
  
-        px, py, pz = position_enu
-        vx, vy, vz = velocity_enu
-        qx, qy, qz, qw = orientation_enu
-
-        #NOTE: Hack to use Vicon's E as N, and convert the ENU to NED
-        # position_ned = np.array([px, -py, -pz])
-        # velocity_ned = np.array([vx, -vy, -vz])
-        # orientation_ned = np.array([qx, -qy, -qz, qw])
-
-        #NOTE: This method currently not working, requires some work
-
-        #TODO: Update scipy library for scalar position modification on quaternion - scalar first/scalar last
-
-        # rot_enu = R.from_quat(orientation_enu)
-        # rot_ned = rot_enu*R.from_matrix(rot_enutoned)
-        # orientation_ned = rot_ned.as_quat()
-
-        #NOTE: Alternate Method: To change quaternion orientation from ENU to NED coordinate frame, 
-        #but remember drone facing EAST is taken as yaw=0 deg
-
-        # q_vec_enu = np.array([qx, qy, qz])
-        # q_vec_ned = np.dot(rot_enutoned, q_vec_enu)
-        # orientation_ned = np.hstack([q_vec_ned, qw]) #Quaternion in x,y,z,w order
-
-        # orientation_ned = np.array([qy, qx, -qz, qw])
-
         return position_ned, orientation_ned, velocity_ned
 
     def pose_callback(self, pose_enu):
@@ -105,10 +79,10 @@ class ViconOdometry(Node):
             mocap_msg.q[3] = orientation_ned[2].astype(np.float32)
             mocap_msg.velocity_frame = 1
             mocap_msg.velocity = velocity_ned.astype(np.float32)
-            mocap_msg.angular_velocity[:] = np.NaN
-            # mocap_msg.position_variance = np.NaN
-            # mocap_msg.orientation_variance = np.NaN
-            # mocap_msg.velocity_variance = np.NaN
+            mocap_msg.angular_velocity[:] = np.nan
+            # mocap_msg.position_variance = np.nan
+            # mocap_msg.orientation_variance = np.nan
+            # mocap_msg.velocity_variance = np.nan
 
             mocap_use = self.get_parameter('mocap_use').value
             if mocap_use == 1:
