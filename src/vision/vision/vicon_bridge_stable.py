@@ -43,22 +43,27 @@ class ViconOdometry(Node):
 
     def enutonedTransform(self, position_enu, orientation_enu, velocity_enu):
        
-        rot_enutoned = np.array([[0, 1, -0],
-                                [1, -0, 0],
-                                [0, -0, -1]])
+        rot_enutoned = np.array([[0, 1, 0],
+                                [1, 0, 0],
+                                [0, 0, -1]])
 
     
         position_ned = np.dot(rot_enutoned, position_enu)
         velocity_ned = np.dot(rot_enutoned, velocity_enu)
 
+        rot_enu = R.from_quat(orientation_enu)
+        rot_flu2frd = R.from_euler('x',180, degrees=True)
+        rot_ned = R.from_matrix(rot_enutoned) * rot_enu * rot_flu2frd
+        orientation_ned = rot_ned.as_quat()
+ 
         px, py, pz = position_enu
         vx, vy, vz = velocity_enu
         qx, qy, qz, qw = orientation_enu
 
         #NOTE: Hack to use Vicon's E as N, and convert the ENU to NED
-        position_ned = np.array([px, -py, -pz])
-        velocity_ned = np.array([vx, -vy, -vz])
-        orientation_ned = np.array([qx, -qy, -qz, qw])
+        # position_ned = np.array([px, -py, -pz])
+        # velocity_ned = np.array([vx, -vy, -vz])
+        # orientation_ned = np.array([qx, -qy, -qz, qw])
 
         #NOTE: This method currently not working, requires some work
 
