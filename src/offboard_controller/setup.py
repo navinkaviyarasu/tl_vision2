@@ -15,13 +15,15 @@ setup(
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='nk',
-    maintainer_email='navin_k@zohomail.in',
+    maintainer_email='navinkaviyarasu@hotmail.com',
     description='TODO: Package description',
     license='Apache-2.0',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
             'oc_posctl = offboard_controller.oc_posctl:main',
+            'oc_mission = offboard_controller.oc_mission:main',
+            'test = offboard_controller.test:main',
         ],
     },
 )
