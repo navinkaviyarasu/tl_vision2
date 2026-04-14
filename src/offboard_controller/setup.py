@@ -24,6 +24,8 @@ setup(
             'oc_posctl = offboard_controller.oc_posctl:main',
             'oc_mission = offboard_controller.oc_mission:main',
             'test = offboard_controller.test:main',
+            'to_srv_client = offboard_controller.takeoff_service_client:main',
+            'to_srv = offboard_controller.test_takeoff_service:main'
         ],
     },
 )
