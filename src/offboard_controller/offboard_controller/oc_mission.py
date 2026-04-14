@@ -58,7 +58,7 @@ class OffboardControl(Node):
         self.theta = 0.0
         self.declare_parameter('radius', 10.0)
         self.declare_parameter('omega', 5.0)
-        self.declare_parameter('takeoff_altitude', 5.0)
+        self.declare_parameter('takeoff_altitude', 0.5)
         self.radius = self.get_parameter('radius').value
         self.omega = self.get_parameter('omega').value
         self.takeoffAltitude = self.get_parameter('takeoff_altitude').value
@@ -148,22 +148,23 @@ class OffboardControl(Node):
 
         self.offboardHeartbeatPublisher()
 
-        if (self.armingState == VehicleStatus.ARMING_STATE_ARMED and self.navState != VehicleStatus.NAVIGATION_STATE_OFFBOARD):
+        # if (self.armingState == VehicleStatus.ARMING_STATE_ARMED and self.navState != VehicleStatus.NAVIGATION_STATE_OFFBOARD):
         
-            vehicleCommandMsg = VehicleCommand()
-            vehicleCommandMsg.command = VehicleCommand.VEHICLE_CMD_DO_SET_MODE
-            vehicleCommandMsg.param1 = 1.0  # custom mode
-            vehicleCommandMsg.param2 = 6.0  # offboard mode
-            vehicleCommandMsg.timestamp = int(self.get_clock().now().nanoseconds / 1000)
-            self.vehicleCommandPublisher.publish(vehicleCommandMsg)
+        #     vehicleCommandMsg = VehicleCommand()
+        #     vehicleCommandMsg.command = VehicleCommand.VEHICLE_CMD_DO_SET_MODE
+        #     vehicleCommandMsg.param1 = 1.0  # custom mode
+        #     vehicleCommandMsg.param2 = 6.0  # offboard mode
+        #     vehicleCommandMsg.timestamp = int(self.get_clock().now().nanoseconds / 1000)
+        #     self.vehicleCommandPublisher.publish(vehicleCommandMsg)
 
-        if (self.offboardCounter==10 and self.armingState == VehicleStatus.ARMING_STATE_ARMED and self.navState == VehicleStatus.NAVIGATION_STATE_OFFBOARD):
-            self.takeoff(0.0, 0.0, -self.takeoffAltitude)
+        # if (self.offboardCounter==10 and self.armingState == VehicleStatus.ARMING_STATE_ARMED and self.navState == VehicleStatus.NAVIGATION_STATE_OFFBOARD):
+        #     self.takeoff(0.0, 0.0, -self.takeoffAltitude)
 
         now = time.time()
 
         # Check if drone has reached takeoff altitude (negative Z in NED coordinates)
-        if self.navState == VehicleStatus.NAVIGATION_STATE_OFFBOARD and self.vehicleLocalPosition.z <= -self.takeoffAltitude:
+        # if self.navState == VehicleStatus.NAVIGATION_STATE_OFFBOARD and self.vehicleLocalPosition.z <= -self.takeoffAltitude:
+        if (self.navState == VehicleStatus.NAVIGATION_STATE_OFFBOARD and self.vehicleLocalPosition.z <= -self.takeoffAltitude and self.armingState == VehicleStatus.ARMING_STATE_ARMED):
 
             # Execute waypoint trajectory if not yet completed
             if not self.square_completed:
@@ -190,7 +191,7 @@ class OffboardControl(Node):
                 self.land()
 
             # Disarm once landed
-            if self.landing_initiated and self.vehicleLocalPosition.z < 1:
+            if self.landing_initiated and self.vehicleLocalPosition.z < 0.5:
                 self.disarm()
                 self.get_logger().info("Mission complete. Exiting...")
                 rclpy.shutdown()
